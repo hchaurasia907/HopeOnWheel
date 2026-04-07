@@ -22,8 +22,11 @@
                 <input type="text" id="b_mobile" required>
             </div>
             <div class="input-group">
-                <label>Pickup Location (Auto-detected)</label>
-                <input type="text" id="b_location" required placeholder="Acquiring GPS Signal...">
+                <label>Pickup Location</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="b_location" required placeholder="Enter location or use GPS">
+                    <button type="button" class="btn-secondary small" onclick="autoDetectLocation()" title="Detect My Location">📍 Detect</button>
+                </div>
                 <input type="hidden" id="pickup_lat">
                 <input type="hidden" id="pickup_lng">
             </div>
@@ -156,6 +159,9 @@
 
     function autoDetectLocation() {
         if (navigator.geolocation) {
+            const locInput = document.getElementById('b_location');
+            locInput.placeholder = "Acquiring GPS...";
+            
             navigator.geolocation.getCurrentPosition((pos) => {
                 const lat = pos.coords.latitude;
                 const lng = pos.coords.longitude;
@@ -166,18 +172,29 @@
                     .then(r => r.json())
                     .then(res => {
                         if (res.formatted_address) {
-                            document.getElementById('b_location').value = res.formatted_address;
+                            locInput.value = res.formatted_address;
                         } else {
-                            document.getElementById('b_location').value = `GPS Pos: ${lat.toFixed(3)}, ${lng.toFixed(3)}`;
+                            locInput.value = `Pos: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
                         }
                     });
             }, (err) => {
-                document.getElementById('b_location').placeholder = "GPS Denied. Enter manually.";
+                let msg = "GPS Error. Please enter location manually.";
+                if (err.code === 1) msg = "Location denied. Please enable GPS in your settings.";
+                else if (err.code === 3) msg = "GPS Timeout. Try again or enter manually.";
+                
+                alert(msg);
+                locInput.placeholder = "Enter location manually";
+            }, {
+                enableHighAccuracy: true,
+                timeout: 8000,
+                maximumAge: 0
             });
+        } else {
+            alert("Your browser does not support geolocation.");
         }
     }
     
-    // Attempt auto-detection on load
+    // Attempt auto-detection on load (works on most laptops, might be blocked on some mobile until click)
     autoDetectLocation();
 
     let trackMap, routingControl;

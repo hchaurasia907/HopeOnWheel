@@ -18,6 +18,13 @@ db.init_app(app)
 MAPMYINDIA_API_KEY = "xznskzoivxovuionpicqjgydnaidvkulpuyb"
 
 @app.before_request
+def enforce_https():
+    # Redirect HTTP to HTTPS in production environments
+    if not app.debug and request.headers.get('X-Forwarded-Proto') == 'http':
+        url = request.url.replace('http://', 'https://', 1)
+        return redirect(url, code=301)
+
+@app.before_request
 def create_tables():
     if not hasattr(app, 'tables_created'):
         db.create_all()

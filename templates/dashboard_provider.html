@@ -103,21 +103,25 @@
         watchId = navigator.geolocation.watchPosition((position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
-            statusSpan.innerHTML = `Transmitting: ${lat.toFixed(4)}, ${lng.toFixed(4)} <br><small>Accuracy: ${position.coords.accuracy}m</small>`;
+            statusSpan.innerHTML = `📡 Transmitting: ${lat.toFixed(4)}, ${lng.toFixed(4)} <br><small>Accuracy: ±${Math.round(position.coords.accuracy)}m</small>`;
             
             // Push to backend
             fetch('/api/update_provider_gps', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({lat: lat, lng: lng})
-            }).catch(e => console.error("Error communicating with backend gps sync"));
+            }).catch(e => console.error("GPS Sync Failed:", e));
 
         }, (error) => {
-            alert('Location access denied or unavailable. Please enable GPS!');
-            toggleGPS(); // auto stop
+            let msg = 'GPS Error: Please enable location services.';
+            if (error.code === 1) msg = 'Location denied. Please allow GPS access in your browser settings.';
+            else if (error.code === 3) msg = 'GPS Signal Timeout. Restarting...';
+            
+            alert(msg);
+            toggleGPS(); // auto-stop on critical error
         }, {
             enableHighAccuracy: true,
-            timeout: 10000,
+            timeout: 15000,
             maximumAge: 0
         });
     }
