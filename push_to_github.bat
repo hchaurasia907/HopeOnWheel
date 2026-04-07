@@ -50,9 +50,17 @@ echo [4/5] Connecting to GitHub...
 git remote remove origin >nul 2>&1
 git remote add origin https://github.com/hchaurasia907/HopeOnWheel.git
 
-echo [5/5] Pushing to GitHub (main branch)...
+echo [5/5] Pushing to GitHub (Force Sync)...
 git branch -M main
-git push -u origin main
+git push -u origin main -f
+
+if %errorlevel% neq 0 (
+    echo.
+    echo [ERROR] The upload failed! 
+    echo If it asked for a password or login, please make sure you entered it.
+    pause
+    exit /b
+)
 
 echo.
 echo --- SUCCESS! Project is now on GitHub ---
