@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Hospital Dashboard | HopeOn Wheel{% endblock %}
+
+{% block content %}
+<div class="dashboard-header glass-card">
+    <h2>Hospital: {{ hospital.name }}</h2>
+    <p>Location: {{ hospital.location }}</p>
+</div>
+
+<div class="dashboard-grid">
+    <!-- Incoming Patients (Accepted Bookings logic mapping) -->
+    <div class="dashboard-card glass-card span-2">
+        <h3>Incoming Patients (Accepted Bookings)</h3>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Tracking ID</th>
+                    <th>Patient Name</th>
+                    <th>Pickup Location</th>
+                    <th>Ambulance</th>
+                    <th>Doctor Assigned</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in bookings %}
+                <tr>
+                    <td>{{ b.tracking_id }}</td>
+                    <td>{{ b.booked_by_name }}</td>
+                    <td>
+                        {{ b.pickup_location }}<br>
+                        <button class="btn-secondary small" style="margin-top: 5px;" data-loc="{{ b.pickup_location }}" onclick="viewLocation(this.getAttribute('data-loc'))">📍 View Map</button>
+                    </td>
+                    <td>{{ b.provider_name }} ({{ b.ambulance_number }})</td>
+                    <td>
+                        {% if b.assigned_doctor %}
+                           {{ b.assigned_doctor }}
+                        {% else %}
+                           <em>None assigned</em>
+                           <!-- Mapped to Add Doctor / Assign Doctor functionality in Java -->
+                           <button class="btn-secondary small" onclick="openAssignModal('{{ b.tracking_id }}')">Assign</button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" style="text-align:center;">No incoming patients currently.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Doctors -->
+    <div class="dashboard-card glass-card">
+        <h3>Doctors Directory</h3>
+        <ul style="list-style: none; padding: 0;">
+            {% for d in doctors %}
+                <li style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <strong>Dr. {{ d.name }}</strong>
+                    <span style="float: right; color: {% if d.available %}#4caf50{% else %}#f44336{% endif %}">
+                        {{ 'Available' if d.available else 'Busy' }}
+                    </span>
+                </li>
+            {% else %}
+                <li>No doctors enlisted.</li>
+            {% endfor %}
+        </ul>
+        <button class="btn-primary" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('addDoctorModal').style.display='flex'">+ Add Doctor</button>
+    </div>
+</div>
+
+<!-- Modals -->
+<div id="addDoctorModal" class="modal">
+    <div class="modal-content glass-card">
+        <span class="close" onclick="document.getElementById('addDoctorModal').style.display='none'">&times;</span>
+        <h3>Add New Doctor</h3>
+        <form id="addDoctorForm" class="grid-form">
+            <div class="input-group span-full">
+                <label>Doctor Name</label>
+                <input type="text" id="doc_name" required>
+            </div>
+            <button type="button" class="btn-primary span-full" onclick="addDoctor()">Add Doctor</button>
+        </form>
+    </div>
+</div>
+
+<div id="locationModal" class="modal">
+    <div class="modal-content glass-card">
+        <span class="close" onclick="closeLocationModal()">&times;</span>
+        <h3>Patient Pickup Location</h3>
+        <p id="locText"></p>
+        <div id="hospitalMap" style="height: 300px; width: 100%; border-radius: 10px; margin-top:15px; z-index: 10;"></div>
+    </div>
+</div>
+
+<div id="assignDoctorModal" class="modal">
+    <div class="modal-content glass-card">
+        <span class="close" onclick="document.getElementById('assignDoctorModal').style.display='none'">&times;</span>
+        <h3>Assign Doctor to Patient</h3>
+        <form class="grid-form">
+            <input type="hidden" id="assign_tracking_id">
+            <div class="input-group span-full">
+                <label>Select Available Doctor</label>
+                <select id="assign_doc_name" required>
+                    {% for d in doctors if d.available %}
+                    <option value="{{ d.name }}">{{ d.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="button" class="btn-primary span-full" onclick="assignDoctor()">Assign</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function addDoctor() {
+        const name = document.getElementById('doc_name').value;
+        if (!name) return;
+        
+        fetch('/api/add_doctor', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name: name})
+        }).then(r => r.json()).then(res => {
+            if(res.success) {
+                alert('Doctor added successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + res.error);
+            }
+        });
+    }
+
+    function openAssignModal(trackingId) {
+        let selectDoc = document.getElementById('assign_doc_name');
+        if (selectDoc.options.length === 0) {
+            alert("No doctors available to assign!");
+            return;
+        }
+        document.getElementById('assign_tracking_id').value = trackingId;
+        document.getElementById('assignDoctorModal').style.display = 'flex';
+    }
+
+    function assignDoctor() {
+        const trackingId = document.getElementById('assign_tracking_id').value;
+        const docName = document.getElementById('assign_doc_name').value;
+        
+        if (!docName || !trackingId) return;
+
+        fetch('/api/assign_doctor', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({tracking_id: trackingId, doctor_name: docName})
+        }).then(r => r.json()).then(res => {
+            if(res.success) {
+                alert('Doctor assigned successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + res.error);
+            }
+        });
+    }
+
+    let hospitalMap, hospitalMarker;
+
+    function viewLocation(locationStr) {
+        document.getElementById('locText').innerHTML = `<strong>Location:</strong> ${locationStr}`;
+        document.getElementById('locationModal').style.display = 'flex';
+        
+        fetch(`/api/geocode?location=${encodeURIComponent(locationStr)}`)
+            .then(r => r.json())
+            .then(geo => {
+                let lat = parseFloat(geo.lat);
+                let lng = parseFloat(geo.lng);
+                if (isNaN(lat) || isNaN(lng)) { lat = 28.6139; lng = 77.2090; }
+
+                if (!hospitalMap) {
+                    hospitalMap = L.map('hospitalMap').setView([lat, lng], 13);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; OpenStreetMap contributors'
+                    }).addTo(hospitalMap);
+                    hospitalMarker = L.marker([lat, lng]).addTo(hospitalMap);
+                } else {
+                    hospitalMap.setView([lat, lng], 13);
+                    if (hospitalMarker) {
+                        hospitalMarker.setLatLng([lat, lng]);
+                    }
+                }
+                
+                setTimeout(() => hospitalMap.invalidateSize(), 300);
+            });
+    }
+
+    function closeLocationModal() {
+        document.getElementById('locationModal').style.display = 'none';
+    }
+</script>
+{% endblock %}

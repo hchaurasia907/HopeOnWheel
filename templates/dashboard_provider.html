@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Provider Dashboard | HopeOn Wheel{% endblock %}
+
+{% block content %}
+<div class="dashboard-header glass-card">
+    <h2>Provider: {{ provider.name }} ({{ provider.service_type }})</h2>
+    <div class="wallet-badge">Wallet: ${{ "%.2f"|format(provider.wallet) }}</div>
+</div>
+
+<div class="dashboard-grid">
+    <!-- Active Bookings -->
+    <div class="dashboard-card glass-card span-2">
+        <h3>Manage Bookings</h3>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Tracking ID</th>
+                    <th>Patient/Client</th>
+                    <th>Mobile</th>
+                    <th>Pickup Location</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in bookings %}
+                <tr>
+                    <td>{{ b.tracking_id }}</td>
+                    <td>{{ b.booked_by_name }}</td>
+                    <td>{{ b.booked_by_mobile }}</td>
+                    <td>{{ b.pickup_location }}</td>
+                    <td><span class="status {{ b.status.lower() }}">{{ b.status }}</span></td>
+                    <td>
+                        {% if b.status == 'Pending' %}
+                        <button class="btn-success small" onclick="updateBooking('{{ b.tracking_id }}', 'Accepted')">Accept</button>
+                        <button class="btn-danger small" onclick="updateBooking('{{ b.tracking_id }}', 'Rejected')">Reject</button>
+                        {% elif b.status == 'Accepted' %}
+                        <button class="btn-primary small" onclick="updateBooking('{{ b.tracking_id }}', 'Completed')">Mark Completed</button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" style="text-align:center;">No bookings found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Update Location -->
+    <div class="dashboard-card glass-card">
+        <h3>Live GPS Broadcast</h3>
+        <p><strong>Current Info:</strong> <span id="locStatus">{{ provider.current_location }}</span></p>
+        <div class="grid-form">
+            <button type="button" id="toggleGpsBtn" class="btn-success" onclick="toggleGPS()">Start Live Tracking</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function updateBooking(trackingId, status) {
+        fetch('/api/update_booking_status', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({tracking_id: trackingId, status: status})
+        }).then(r => r.json()).then(res => {
+            if(res.success) {
+                location.reload();
+            } else {
+                alert("Error: " + res.error);
+            }
+        });
+    }
+
+    let watchId = null;
+
+    function toggleGPS() {
+        const btn = document.getElementById('toggleGpsBtn');
+        const statusSpan = document.getElementById('locStatus');
+
+        if (watchId !== null) {
+            // Stop Tracking
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+            btn.textContent = 'Start Live Tracking';
+            btn.className = 'btn-success';
+            statusSpan.textContent = 'Tracking Stopped (Last known sent).';
+            return;
+        }
+
+        if (!navigator.geolocation) {
+            alert('Your browser does not support Geolocation APIs!');
+            return;
+        }
+
+        // Start Tracking
+        btn.textContent = 'Stop Live Tracking';
+        btn.className = 'btn-danger';
+        statusSpan.textContent = 'Acquiring GPS Signal...';
+        
+        watchId = navigator.geolocation.watchPosition((position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            statusSpan.innerHTML = `Transmitting: ${lat.toFixed(4)}, ${lng.toFixed(4)} <br><small>Accuracy: ${position.coords.accuracy}m</small>`;
+            
+            // Push to backend
+            fetch('/api/update_provider_gps', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({lat: lat, lng: lng})
+            }).catch(e => console.error("Error communicating with backend gps sync"));
+
+        }, (error) => {
+            alert('Location access denied or unavailable. Please enable GPS!');
+            toggleGPS(); // auto stop
+        }, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        });
+    }
+</script>
+{% endblock %}

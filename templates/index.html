@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Home | HopeOn Wheel{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <div class="hero-split">
+        <div class="hero-content glass-card">
+            <h1>Emergency Medical Services, <span>Anytime, Anywhere.</span></h1>
+            <p>A smart, robust, and lightning-fast ambulance booking system designed to save lives.</p>
+            <div class="cta-group">
+                {% if session.get('user_id') %}
+                <a href="{{ url_for(session.get('user_type') + '_dashboard') }}" class="cta-btn primary">Go to Dashboard</a>
+                {% else %}
+                <a href="{{ url_for('auth') }}" class="cta-btn primary">Book an Ambulance Now</a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="hero-image">
+            <img src="{{ url_for('static', filename='images/hero_ambulance.png') }}" alt="Futuristic Ambulance Illustration" class="floating-img">
+        </div>
+    </div>
+</div>
+
+<div class="features-section">
+    <div class="feature-card glass-card">
+        <h3>📍 Live Tracking</h3>
+        <p>Monitor your ambulance in real-time with an interactive map layout.</p>
+    </div>
+    <div class="feature-card glass-card">
+        <h3>🏥 Hospital Routing</h3>
+        <p>Intelligently find and navigate to the nearest hospitals and veterinary clinics.</p>
+    </div>
+    <div class="feature-card glass-card">
+        <h3>⚡ Lightning Fast</h3>
+        <p>Instant dispatch and intuitive UX ensures minimal delay in emergencies.</p>
+    </div>
+</div>
+{% endblock %}

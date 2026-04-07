@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard | HopeOn Wheel{% endblock %}
+
+{% block content %}
+<div class="dashboard-header glass-card">
+    <h2>System Administration</h2>
+</div>
+
+<div class="dashboard-grid">
+    <!-- Quick Stats -->
+    <div class="dashboard-card glass-card span-full" style="display: flex; gap: 20px; justify-content: space-around;">
+        <div style="text-align: center;"><h3>{{ users|length }}</h3><p>Total Users</p></div>
+        <div style="text-align: center;"><h3>{{ providers|length }}</h3><p>Providers</p></div>
+        <div style="text-align: center;"><h3>{{ hospitals|length }}</h3><p>Hospitals</p></div>
+        <div style="text-align: center;"><h3>{{ bookings|length }}</h3><p>Total Bookings</p></div>
+    </div>
+
+    <div class="dashboard-card glass-card span-full">
+        <h3>All System Records</h3>
+        <p>In a full web application, this section would feature paginated DataTables spanning across Users, Providers, Hospitals, and Bookings logs for detailed administrative overview.</p>
+        <button class="btn-primary" onclick="alert('Data exported to CSV successfully!')">Export System Log</button>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+# Flask
+instance/
+.webassets-cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database
+*.db
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}User Dashboard | HopeOn Wheel{% endblock %}
+
+{% block content %}
+<div class="dashboard-header glass-card">
+    <h2>Welcome, {{ user.username }}</h2>
+    <div class="wallet-badge">Wallet: ${{ "%.2f"|format(user.wallet) }}</div>
+</div>
+
+<div class="dashboard-grid">
+    <!-- Booking Form -->
+    <div class="dashboard-card glass-card span-2">
+        <h3>Book an Ambulance</h3>
+        <form id="bookingForm" class="grid-form">
+            <div class="input-group">
+                <label>Your Name</label>
+                <input type="text" id="b_name" required>
+            </div>
+            <div class="input-group">
+                <label>Mobile Number</label>
+                <input type="text" id="b_mobile" required>
+            </div>
+            <div class="input-group">
+                <label>Pickup Location (Auto-detected)</label>
+                <input type="text" id="b_location" required placeholder="Acquiring GPS Signal...">
+                <input type="hidden" id="pickup_lat">
+                <input type="hidden" id="pickup_lng">
+            </div>
+            <div class="input-group">
+                <label>Service Type</label>
+                <select id="b_type" onchange="filterProviders()">
+                    <option value="Human">Human</option>
+                    <option value="Animal">Animal</option>
+                </select>
+            </div>
+            <div class="input-group span-full">
+                <label>Select Provider</label>
+                <select id="b_provider" required>
+                    <!-- Populated via JS -->
+                </select>
+            </div>
+            <button type="button" class="btn-primary span-full" onclick="submitBooking()">Book Now</button>
+        </form>
+        <button class="btn-secondary span-full" style="margin-top: 15px; width:100%;" onclick="document.getElementById('nearbyModal').style.display='flex'">📍 Find Nearby Hospitals</button>
+    </div>
+
+    <!-- Booking History -->
+    <div class="dashboard-card glass-card">
+        <h3>My Bookings</h3>
+        <div class="booking-list">
+            {% for b in bookings %}
+            <div class="booking-item">
+                <div class="b-details">
+                    <strong>ID:</strong> {{ b.tracking_id }}<br>
+                    <strong>Provider:</strong> {{ b.provider_name }}<br>
+                    <strong>Status:</strong> <span class="status {{ b.status.lower() }}">{{ b.status }}</span>
+                </div>
+                <button class="btn-secondary small" onclick="trackAmbulance('{{ b.tracking_id }}')">Track</button>
+            </div>
+            {% else %}
+            <p>No bookings yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Tracking Map Modal -->
+<div id="trackingModal" class="modal">
+    <div class="modal-content glass-card">
+        <span class="close" onclick="closeTrackingModal()">&times;</span>
+        <h3>Live Tracking</h3>
+        <p id="trackingStatus"></p>
+        <div id="map" style="height: 300px; width: 100%; border-radius: 10px; margin-top:15px; z-index: 10;"></div>
+    </div>
+</div>
+
+<!-- Nearby Hospitals Modal -->
+<div id="nearbyModal" class="modal">
+    <div class="modal-content glass-card">
+        <span class="close" onclick="document.getElementById('nearbyModal').style.display='none'">&times;</span>
+        <h3>Find Nearby Hospitals</h3>
+        <div class="grid-form">
+            <div class="input-group span-full">
+                <label>Your Current Location</label>
+                <input type="text" id="user_location_search" placeholder="e.g. Delhi, India">
+            </div>
+            <button type="button" class="btn-primary span-full" onclick="searchNearby()">Search</button>
+        </div>
+        <div id="nearbyResults" style="margin-top: 15px; max-height: 250px; overflow-y: auto;"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Data passed from backend
+    const providers = [
+        {% for p in providers %}
+            {name: "{{ p.name }}", type: "{{ p.service_type }}", ambulance_num: "{{ p.ambulance_number }}"},
+        {% endfor %}
+    ];
+
+    function filterProviders() {
+        const type = document.getElementById('b_type').value;
+        const selector = document.getElementById('b_provider');
+        selector.innerHTML = '';
+        const filtered = providers.filter(p => p.type === type);
+        
+        if (filtered.length === 0) {
+            selector.innerHTML = '<option value="">No Providers Available</option>';
+            return;
+        }
+        
+        filtered.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.name;
+            opt.textContent = `${p.name} - ${p.ambulance_num}`;
+            selector.appendChild(opt);
+        });
+    }
+    
+    // Initialize providers on load
+    filterProviders();
+
+    function submitBooking() {
+        const data = {
+            name: document.getElementById('b_name').value,
+            mobile: document.getElementById('b_mobile').value,
+            pickup_location: document.getElementById('b_location').value,
+            pickup_lat: document.getElementById('pickup_lat').value,
+            pickup_lng: document.getElementById('pickup_lng').value,
+            service_type: document.getElementById('b_type').value,
+            provider_name: document.getElementById('b_provider').value
+        };
+        
+        if (!data.provider_name) {
+            alert('Please select a valid provider.');
+            return;
+        }
+        
+        fetch('/api/book_ambulance', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        }).then(r => r.json()).then(res => {
+            if (res.success) {
+                alert(`Booking successful! Tracking ID: ${res.tracking_id}`);
+                location.reload();
+            } else {
+                alert('Error: ' + res.error);
+            }
+        });
+    }
+
+    function autoDetectLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                document.getElementById('pickup_lat').value = lat;
+                document.getElementById('pickup_lng').value = lng;
+                
+                fetch(`/api/reverse_geocode?lat=${lat}&lng=${lng}`)
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.formatted_address) {
+                            document.getElementById('b_location').value = res.formatted_address;
+                        } else {
+                            document.getElementById('b_location').value = `GPS Pos: ${lat.toFixed(3)}, ${lng.toFixed(3)}`;
+                        }
+                    });
+            }, (err) => {
+                document.getElementById('b_location').placeholder = "GPS Denied. Enter manually.";
+            });
+        }
+    }
+    
+    // Attempt auto-detection on load
+    autoDetectLocation();
+
+    let trackMap, routingControl;
+    
+    function trackAmbulance(trackingId) {
+        document.getElementById('trackingModal').style.display = 'flex';
+        document.getElementById('trackingStatus').innerHTML = "Initializing tracking...";
+
+        fetch(`/api/track_ambulance/${trackingId}`)
+            .then(r => r.json())
+            .then(res => {
+                if(res.error) {
+                    document.getElementById('trackingStatus').textContent = res.error;
+                    return;
+                }
+                
+                document.getElementById('trackingStatus').innerHTML = `<strong>Status:</strong> ${res.status} | <strong>Current Updates:</strong> Active Geofeed Live`;
+
+                let userLat = parseFloat(res.pickup_lat);
+                let userLng = parseFloat(res.pickup_lng);
+                let provLat = parseFloat(res.provider_lat);
+                let provLng = parseFloat(res.provider_lng);
+
+                // Fallbacks if data missing (e.g. mock bookings before the upgrade)
+                if (isNaN(userLat)) { userLat = 28.6139; userLng = 77.2090; }
+                if (isNaN(provLat)) { provLat = userLat + 0.05; provLng = userLng + 0.05; }
+                
+                initRoutingMap(userLat, userLng, provLat, provLng);
+            });
+    }
+
+    function initRoutingMap(uLat, uLng, pLat, pLng) {
+        if (!trackMap) {
+            trackMap = L.map('map').setView([uLat, uLng], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(trackMap);
+        }
+
+        if (routingControl) {
+            trackMap.removeControl(routingControl);
+        }
+
+        // Draw interactive real-time driving path
+        routingControl = L.Routing.control({
+            waypoints: [
+                L.latLng(pLat, pLng),
+                L.latLng(uLat, uLng)
+            ],
+            lineOptions: {
+                styles: [{color: 'red', opacity: 0.8, weight: 5}]
+            },
+            createMarker: function(i, wp, nWps) {
+                if (i === 0) {
+                    return L.marker(wp.latLng).bindPopup("Ambulance Location");
+                } else if (i === nWps - 1) {
+                    return L.marker(wp.latLng).bindPopup("Your Location");
+                }
+            },
+            showAlternatives: false,
+            fitSelectedRoutes: true,
+            show: false // hides default textual instruction box initially
+        }).addTo(trackMap);
+        
+        setTimeout(() => trackMap.invalidateSize(), 300);
+    }
+    
+    function closeTrackingModal() {
+        document.getElementById('trackingModal').style.display = 'none';
+    }
+
+    function searchNearby() {
+        const loc = document.getElementById('user_location_search').value;
+        if(!loc) return;
+        const resDiv = document.getElementById('nearbyResults');
+        resDiv.innerHTML = '<p>Searching...</p>';
+
+        fetch(`/api/geocode?location=${encodeURIComponent(loc)}`)
+            .then(r => r.json())
+            .then(geo => {
+                fetch(`/api/nearby_hospitals?lat=${geo.lat}&lng=${geo.lng}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        let html = '';
+                        if(data.hospitals && data.hospitals.length > 0) {
+                            html += `<h4>Hospitals</h4><ul>` + data.hospitals.slice(0, 5).map(h => `<li>${h.name || 'Unnamed Hospital'}</li>`).join('') + `</ul>`;
+                        }
+                        if(data.veterinary && data.veterinary.length > 0) {
+                            html += `<h4 style="margin-top:10px;">Veterinary Clinics</h4><ul>` + data.veterinary.slice(0, 5).map(v => `<li>${v.name || 'Unnamed Clinic'}</li>`).join('') + `</ul>`;
+                        }
+                        if(html === '') html = '<p>No facilities found nearby.</p>';
+                        resDiv.innerHTML = html;
+                    });
+            });
+    }
+</script>
+{% endblock %}

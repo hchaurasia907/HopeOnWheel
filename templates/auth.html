@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Authentication | HopeOn Wheel{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-box glass-card">
+        <h2>Welcome to HopeOn Wheel</h2>
+        <div class="role-tabs">
+            <button class="tab-btn active" data-role="user">User</button>
+            <button class="tab-btn" data-role="provider">Provider</button>
+            <button class="tab-btn" data-role="hospital">Hospital</button>
+            <button class="tab-btn" data-role="admin">Admin</button>
+        </div>
+        
+        <div class="auth-toggle">
+            <button class="toggle-btn active" data-action="login">Login</button>
+            <button class="toggle-btn" data-action="register" id="registerToggleBtn">Register</button>
+        </div>
+
+        <form id="authForm" action="{{ url_for('auth') }}" method="POST">
+            <input type="hidden" name="role" id="roleInput" value="user">
+            <input type="hidden" name="action" id="actionInput" value="login">
+            
+            <div class="input-group">
+                <label>Username</label>
+                <input type="text" name="username" required>
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" name="password" required>
+            </div>
+            
+            <!-- Extra fields for Provider Registration -->
+            <div class="extra-fields" id="providerFields" style="display:none;">
+                <div class="input-group">
+                    <label>Provider Name</label>
+                    <input type="text" name="name" class="p-field">
+                </div>
+                <div class="input-group">
+                    <label>Ambulance Number</label>
+                    <input type="text" name="ambulance_number" class="p-field">
+                </div>
+                <div class="input-group">
+                    <label>Service Type</label>
+                    <select name="service_type" class="p-field">
+                        <option value="Human">Human</option>
+                        <option value="Animal">Animal</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Extra fields for Hospital Registration -->
+            <div class="extra-fields" id="hospitalFields" style="display:none;">
+                <div class="input-group">
+                    <label>Hospital Name</label>
+                    <input type="text" name="name" class="h-field">
+                </div>
+                <div class="input-group">
+                    <label>Location</label>
+                    <input type="text" name="location" class="h-field">
+                </div>
+            </div>
+            
+            <button type="submit" class="submit-btn primary" id="submitBtn">Login</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const roleTabs = document.querySelectorAll('.tab-btn');
+    const roleInput = document.getElementById('roleInput');
+    const toggleBtns = document.querySelectorAll('.toggle-btn');
+    const actionInput = document.getElementById('actionInput');
+    const submitBtn = document.getElementById('submitBtn');
+    const registerToggleBtn = document.getElementById('registerToggleBtn');
+    
+    function updateForm() {
+        const role = roleInput.value;
+        const action = actionInput.value;
+        
+        // Handle admin specifically (cannot register from portal)
+        if (role === 'admin') {
+            registerToggleBtn.style.display = 'none';
+            if(action === 'register') {
+                actionInput.value = 'login';
+                document.querySelector('[data-action="login"]').classList.add('active');
+                document.querySelector('[data-action="register"]').classList.remove('active');
+            }
+        } else {
+            registerToggleBtn.style.display = 'inline-block';
+        }
+        
+        // Hide all extra fields
+        document.getElementById('providerFields').style.display = 'none';
+        document.getElementById('hospitalFields').style.display = 'none';
+        
+        // Disable requirements on extra fields
+        document.querySelectorAll('.p-field, .h-field').forEach(el => el.removeAttribute('required'));
+        
+        if (action === 'register') {
+            submitBtn.textContent = 'Register';
+            if (role === 'provider') {
+                document.getElementById('providerFields').style.display = 'block';
+                document.querySelectorAll('.p-field').forEach(el => el.setAttribute('required', 'true'));
+            } else if (role === 'hospital') {
+                document.getElementById('hospitalFields').style.display = 'block';
+                document.querySelectorAll('.h-field').forEach(el => el.setAttribute('required', 'true'));
+            }
+        } else {
+            submitBtn.textContent = 'Login';
+        }
+    }
+    
+    roleTabs.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            roleTabs.forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            roleInput.value = e.target.getAttribute('data-role');
+            updateForm();
+        });
+    });
+    
+    toggleBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            toggleBtns.forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            actionInput.value = e.target.getAttribute('data-action');
+            updateForm();
+        });
+    });
+    
+    // Check initial state
+    updateForm();
+</script>
+{% endblock %}
