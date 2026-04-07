@@ -16,8 +16,8 @@ if %errorlevel% neq 0 (
     
     if defined GIT_PATH (
         echo [FIX] Found Git at: !GIT_PATH!
-        set "PATH=!PATH!;!GIT_PATH%:\git.exe=!"
-        doskey git="!GIT_PATH!" $*
+        set "GIT_DIR=!GIT_PATH:\git.exe=!"
+        set "PATH=!PATH!;!GIT_DIR!"
     ) else (
         echo [ERROR] Git could not be found on this computer.
         echo Please download and install Git from: https://git-scm.com/download/win

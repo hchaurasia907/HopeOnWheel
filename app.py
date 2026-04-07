@@ -336,5 +336,11 @@ def nearby_hospitals():
     
     return jsonify({"hospitals": [], "veterinary": []})
 
+# Auto-initialize database on startup
+with app.app_context():
+    db.create_all()
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Use environment port for Render compatibility
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
