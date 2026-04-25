@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Ambulance Booking System{% endblock %}</title>
+    <meta name="description" content="HopeOn Wheel - India's smartest emergency ambulance booking system with real-time GPS tracking">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Leaflet CSS for Maps -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
@@ -20,12 +23,12 @@
             <h2>HopeOn Wheel</h2>
         </div>
         <div class="nav-links">
-            <a href="{{ url_for('index') }}" class="nav-btn">Home</a>
+            <a href="{{ url_for('index') }}" class="nav-btn"><i class="fas fa-home"></i> Home</a>
             {% if session.get('user_id') %}
-                <a href="{{ url_for(session.get('user_type') + '_dashboard') }}" class="nav-btn">Dashboard</a>
-                <a href="{{ url_for('logout') }}" class="nav-btn btn-danger">Logout</a>
+                <a href="{{ url_for(session.get('user_type') + '_dashboard') }}" class="nav-btn"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                <a href="{{ url_for('logout') }}" class="nav-btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
             {% else %}
-                <a href="{{ url_for('auth') }}" class="nav-btn btn-primary">Login / Register</a>
+                <a href="{{ url_for('auth') }}" class="nav-btn btn-primary"><i class="fas fa-sign-in-alt"></i> Login / Register</a>
             {% endif %}
         </div>
     </nav>
@@ -43,6 +46,50 @@
     <main class="container">
         {% block content %}{% endblock %}
     </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <span class="footer-logo">🚑</span>
+                <div>
+                    <h3>HopeOn Wheel</h3>
+                    <p>Emergency Medical Services, Anytime, Anywhere.</p>
+                </div>
+            </div>
+            <div class="footer-links">
+                <div class="footer-col">
+                    <h4>Quick Links</h4>
+                    <a href="{{ url_for('index') }}"><i class="fas fa-chevron-right"></i> Home</a>
+                    <a href="{{ url_for('auth') }}"><i class="fas fa-chevron-right"></i> Login</a>
+                    <a href="{{ url_for('auth') }}"><i class="fas fa-chevron-right"></i> Register</a>
+                </div>
+                <div class="footer-col">
+                    <h4>Services</h4>
+                    <a href="#"><i class="fas fa-chevron-right"></i> Human Ambulance</a>
+                    <a href="#"><i class="fas fa-chevron-right"></i> Animal Ambulance</a>
+                    <a href="#"><i class="fas fa-chevron-right"></i> Hospital Finder</a>
+                </div>
+                <div class="footer-col">
+                    <h4>Contact</h4>
+                    <a href="#"><i class="fas fa-envelope"></i> support@hopeonwheel.in</a>
+                    <a href="#"><i class="fas fa-phone"></i> +91-112 (Emergency)</a>
+                    <a href="#"><i class="fas fa-map-marker-alt"></i> India</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <div class="footer-divider"></div>
+            <div class="footer-bottom-content">
+                <p>&copy; 2025 HopeOn Wheel. All Rights Reserved.</p>
+                <p class="creator-credit">
+                    Crafted with <span class="heart-beat">❤️</span> by 
+                    <span class="creator-name">Harsh Chaurasia</span> & 
+                    <span class="creator-name">Jatin Kumar</span>
+                </p>
+            </div>
+        </div>
+    </footer>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>

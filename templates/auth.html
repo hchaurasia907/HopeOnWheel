@@ -3,69 +3,283 @@
 {% block title %}Authentication | HopeOn Wheel{% endblock %}
 
 {% block content %}
-<div class="auth-container">
-    <div class="auth-box glass-card">
-        <h2>Welcome to HopeOn Wheel</h2>
-        <div class="role-tabs">
-            <button class="tab-btn active" data-role="user">User</button>
-            <button class="tab-btn" data-role="provider">Provider</button>
-            <button class="tab-btn" data-role="hospital">Hospital</button>
-            <button class="tab-btn" data-role="admin">Admin</button>
-        </div>
-        
-        <div class="auth-toggle">
-            <button class="toggle-btn active" data-action="login">Login</button>
-            <button class="toggle-btn" data-action="register" id="registerToggleBtn">Register</button>
-        </div>
+<style>
+    .auth-page { animation: fadeInUp 0.6s ease-out; }
+    @keyframes fadeInUp { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes shimmerLine { 0% { background-position:-200% 0; } 100% { background-position:200% 0; } }
 
-        <form id="authForm" action="{{ url_for('auth') }}" method="POST">
-            <input type="hidden" name="role" id="roleInput" value="user">
-            <input type="hidden" name="action" id="actionInput" value="login">
-            
-            <div class="input-group">
-                <label>Username</label>
-                <input type="text" name="username" required>
+    .auth-container { min-height: 80vh; display:flex; align-items:center; justify-content:center; }
+
+    .auth-box {
+        width: 100%; max-width: 480px; padding: 2.5rem;
+        text-align: center; position: relative; overflow: hidden;
+    }
+    .auth-box::before {
+        content:''; position:absolute; top:0; left:0;
+        width:100%; height:3px;
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6);
+        background-size: 200% auto;
+        animation: shimmerLine 3s linear infinite;
+    }
+
+    .auth-box h2 {
+        font-size: 1.8rem; margin-bottom: 0.5rem;
+        background: linear-gradient(90deg, #60a5fa, #c084fc);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .auth-box .auth-sub {
+        color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;
+    }
+
+    .role-tabs {
+        display: flex; background: rgba(0,0,0,0.3); border-radius: 12px;
+        padding: 5px; margin-bottom: 1.5rem; gap: 4px;
+    }
+    .tab-btn {
+        flex: 1; background: none; border: none; color: var(--text-muted);
+        padding: 0.7rem 0; cursor: pointer; border-radius: 8px;
+        transition: all 0.3s ease; font-family: inherit; font-weight: 600; font-size: 0.9rem;
+    }
+    .tab-btn:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
+    .tab-btn.active {
+        background: linear-gradient(135deg, var(--primary), #8b5cf6);
+        color: white; box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+    }
+
+    .auth-toggle {
+        display: flex; justify-content: center; gap: 2rem; margin-bottom: 1.8rem;
+    }
+    .toggle-btn {
+        background: none; border: none; color: var(--text-muted); font-size: 1rem;
+        cursor: pointer; padding-bottom: 6px; font-family: inherit; font-weight: 600;
+        transition: all 0.3s ease; position: relative;
+    }
+    .toggle-btn::after {
+        content: ''; position: absolute; bottom: 0; left: 0;
+        width: 0; height: 2px; background: var(--primary);
+        transition: width 0.3s ease;
+    }
+    .toggle-btn.active { color: white; }
+    .toggle-btn.active::after { width: 100%; }
+
+    .auth-box .input-group { margin-bottom: 1rem; text-align: left; }
+    .auth-box .input-group label {
+        font-size: 0.85rem; color: var(--text-muted); font-weight: 600; margin-bottom: 4px;
+        display: flex; align-items: center; gap: 6px;
+    }
+    .auth-box .input-group input,
+    .auth-box .input-group select {
+        width: 100%; padding: 0.85rem 1rem;
+        background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.1);
+        color: white; border-radius: 10px; font-family: var(--font); font-size: 0.95rem;
+        outline: none; transition: all 0.3s ease;
+    }
+    .auth-box .input-group input:focus,
+    .auth-box .input-group select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+    .auth-box .input-group input::placeholder { color: rgba(148,163,184,0.6); }
+
+    .extra-fields {
+        animation: slideDown 0.4s ease;
+        border-top: 1px solid rgba(255,255,255,0.06);
+        padding-top: 1rem; margin-top: 0.5rem;
+    }
+    @keyframes slideDown { from { opacity:0; max-height:0; } to { opacity:1; max-height:500px; } }
+
+    .submit-btn {
+        width: 100%; padding: 1rem; margin-top: 1rem; font-size: 1.05rem;
+        border: none; border-radius: 12px; cursor: pointer;
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white; font-weight: 700; font-family: var(--font);
+        box-shadow: 0 6px 20px rgba(59,130,246,0.35);
+        transition: all 0.3s cubic-bezier(0.175,0.885,0.32,1.275);
+        position: relative; overflow: hidden;
+    }
+    .submit-btn::after {
+        content:''; position:absolute; top:-50%; left:-50%;
+        width:200%; height:200%;
+        background: linear-gradient(transparent, rgba(255,255,255,0.15), transparent);
+        transform: rotate(45deg) translate(-100%,100%);
+        transition: transform 0.6s ease;
+    }
+    .submit-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(59,130,246,0.5); }
+    .submit-btn:hover::after { transform: rotate(45deg) translate(100%,-100%); }
+    .submit-btn:active { transform: scale(0.97); }
+
+    /* Forgot password link */
+    .forgot-link {
+        display: inline-block; margin-top: 1rem;
+        color: #93c5fd; font-size: 0.88rem; cursor: pointer;
+        transition: color 0.3s ease; background: none; border: none;
+        font-family: var(--font); text-decoration: underline;
+    }
+    .forgot-link:hover { color: #60a5fa; }
+
+    /* Login hint */
+    .login-hint {
+        font-size: 0.8rem; color: var(--text-muted);
+        margin-top: 0.5rem; font-style: italic;
+    }
+
+    .auth-features {
+        display: flex; gap: 1.5rem; justify-content: center; margin-top: 1.5rem;
+        flex-wrap: wrap;
+    }
+    .auth-feat {
+        display: flex; align-items: center; gap: 6px;
+        font-size: 0.8rem; color: var(--text-muted);
+    }
+    .auth-feat i { color: var(--success); font-size: 0.7rem; }
+
+    /* Forgot Password Modal */
+    .forgot-modal {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+        z-index: 5000; align-items: center; justify-content: center;
+    }
+    .forgot-modal.show { display: flex; }
+    .forgot-box {
+        background: rgba(15,23,42,0.98); border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 20px; padding: 2.5rem; max-width: 420px; width: 90%;
+        text-align: center; animation: fadeInUp 0.3s ease;
+        box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+    }
+    .forgot-box h3 {
+        margin-bottom: 0.5rem; font-size: 1.3rem;
+        color: #fcd34d;
+    }
+    .forgot-box p { color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+    .forgot-box .input-group { text-align: left; margin-bottom: 1rem; }
+    .forgot-box .input-group label { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 4px; }
+    .forgot-box .input-group input {
+        width: 100%; padding: 0.8rem 1rem;
+        background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.1);
+        color: white; border-radius: 10px; font-family: var(--font); font-size: 0.95rem;
+        outline: none;
+    }
+    .forgot-box .input-group input:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.2); }
+    .forgot-actions { display: flex; gap: 1rem; margin-top: 1rem; }
+    .forgot-actions button { flex: 1; }
+
+    .forgot-result {
+        margin-top: 1rem; padding: 0.8rem 1rem; border-radius: 10px;
+        font-size: 0.9rem; display: none;
+    }
+    .forgot-result.success { display: block; background: rgba(16,185,129,0.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
+    .forgot-result.error { display: block; background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+</style>
+
+<div class="auth-page">
+    <div class="auth-container">
+        <div class="auth-box glass-card">
+            <h2>🚑 Welcome to HopeOn Wheel</h2>
+            <p class="auth-sub">Sign in to access emergency ambulance services</p>
+
+            <div class="role-tabs">
+                <button class="tab-btn active" data-role="user"><i class="fas fa-user"></i> User</button>
+                <button class="tab-btn" data-role="provider"><i class="fas fa-ambulance"></i> Provider</button>
+                <button class="tab-btn" data-role="hospital"><i class="fas fa-hospital"></i> Hospital</button>
+                <button class="tab-btn" data-role="admin"><i class="fas fa-shield-alt"></i> Admin</button>
             </div>
-            <div class="input-group">
-                <label>Password</label>
-                <input type="password" name="password" required>
+
+            <div class="auth-toggle">
+                <button class="toggle-btn active" data-action="login">Login</button>
+                <button class="toggle-btn" data-action="register" id="registerToggleBtn">Register</button>
             </div>
-            
-            <!-- Extra fields for Provider Registration -->
-            <div class="extra-fields" id="providerFields" style="display:none;">
+
+            <form id="authForm" action="{{ url_for('auth') }}" method="POST">
+                <input type="hidden" name="role" id="roleInput" value="user">
+                <input type="hidden" name="action" id="actionInput" value="login">
+
                 <div class="input-group">
-                    <label>Provider Name</label>
-                    <input type="text" name="name" class="p-field">
+                    <label><i class="fas fa-user"></i> Username or Contact Number</label>
+                    <input type="text" name="username" id="usernameInput" required placeholder="Enter username or mobile number">
                 </div>
                 <div class="input-group">
-                    <label>Ambulance Number</label>
-                    <input type="text" name="ambulance_number" class="p-field">
+                    <label><i class="fas fa-lock"></i> Password</label>
+                    <input type="password" name="password" required placeholder="Enter your password">
                 </div>
-                <div class="input-group">
-                    <label>Service Type</label>
-                    <select name="service_type" class="p-field">
-                        <option value="Human">Human</option>
-                        <option value="Animal">Animal</option>
-                    </select>
+
+                <!-- Contact number field for registration -->
+                <div class="input-group" id="contactField" style="display:none;">
+                    <label><i class="fas fa-phone"></i> Contact Number</label>
+                    <input type="tel" name="contact" id="contactInput" placeholder="e.g. 9876543210" pattern="[0-9]{10,15}">
                 </div>
+
+                <!-- Extra fields for Provider Registration -->
+                <div class="extra-fields" id="providerFields" style="display:none;">
+                    <div class="input-group">
+                        <label><i class="fas fa-id-card"></i> Provider Name</label>
+                        <input type="text" name="name" class="p-field" placeholder="Full name (auto-capitalized)">
+                    </div>
+                    <div class="input-group">
+                        <label><i class="fas fa-ambulance"></i> Ambulance Number</label>
+                        <input type="text" name="ambulance_number" class="p-field" placeholder="e.g. UP-14-AB-1234">
+                    </div>
+                    <div class="input-group">
+                        <label><i class="fas fa-stethoscope"></i> Service Type</label>
+                        <select name="service_type" class="p-field">
+                            <option value="Human">🧑 Human Ambulance</option>
+                            <option value="Animal">🐾 Animal Ambulance</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Extra fields for Hospital Registration -->
+                <div class="extra-fields" id="hospitalFields" style="display:none;">
+                    <div class="input-group">
+                        <label><i class="fas fa-hospital"></i> Hospital Name</label>
+                        <input type="text" name="name" class="h-field" placeholder="Hospital name (auto-capitalized)">
+                    </div>
+                    <div class="input-group">
+                        <label><i class="fas fa-map-marker-alt"></i> Location</label>
+                        <input type="text" name="location" class="h-field" placeholder="e.g. Sector 15, Noida">
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn"><i class="fas fa-sign-in-alt"></i> Login</button>
+            </form>
+
+            <!-- Forgot Password (only on login) -->
+            <button class="forgot-link" id="forgotLink" onclick="openForgot()"><i class="fas fa-key"></i> Forgot Password?</button>
+            <p class="login-hint" id="loginHint">💡 You can login using either your username or contact number</p>
+
+            <div class="auth-features">
+                <div class="auth-feat"><i class="fas fa-check-circle"></i> Secure</div>
+                <div class="auth-feat"><i class="fas fa-check-circle"></i> 24/7 Access</div>
+                <div class="auth-feat"><i class="fas fa-check-circle"></i> Free</div>
             </div>
-            
-            <!-- Extra fields for Hospital Registration -->
-            <div class="extra-fields" id="hospitalFields" style="display:none;">
-                <div class="input-group">
-                    <label>Hospital Name</label>
-                    <input type="text" name="name" class="h-field">
-                </div>
-                <div class="input-group">
-                    <label>Location</label>
-                    <input type="text" name="location" class="h-field">
-                </div>
-            </div>
-            
-            <button type="submit" class="submit-btn primary" id="submitBtn">Login</button>
-        </form>
+        </div>
     </div>
 </div>
+
+<!-- Forgot Password Modal -->
+<div class="forgot-modal" id="forgotModal">
+    <div class="forgot-box">
+        <h3>🔑 Reset Password</h3>
+        <p>Enter your registered contact number and create a new password</p>
+        <div class="input-group">
+            <label><i class="fas fa-phone"></i> Registered Contact Number</label>
+            <input type="tel" id="forgotContact" placeholder="Enter your registered mobile number">
+        </div>
+        <div class="input-group">
+            <label><i class="fas fa-lock"></i> New Password</label>
+            <input type="password" id="forgotNewPass" placeholder="Enter new password (min 4 chars)">
+        </div>
+        <div class="input-group">
+            <label><i class="fas fa-lock"></i> Confirm New Password</label>
+            <input type="password" id="forgotConfirmPass" placeholder="Confirm new password">
+        </div>
+        <div id="forgotResult" class="forgot-result"></div>
+        <div class="forgot-actions">
+            <button class="btn-secondary" onclick="closeForgot()">Cancel</button>
+            <button class="btn-primary" id="resetBtn" onclick="resetPassword()"><i class="fas fa-check"></i> Reset Password</button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -76,12 +290,17 @@
     const actionInput = document.getElementById('actionInput');
     const submitBtn = document.getElementById('submitBtn');
     const registerToggleBtn = document.getElementById('registerToggleBtn');
-    
+    const contactField = document.getElementById('contactField');
+    const contactInput = document.getElementById('contactInput');
+    const forgotLink = document.getElementById('forgotLink');
+    const loginHint = document.getElementById('loginHint');
+    const usernameInput = document.getElementById('usernameInput');
+
     function updateForm() {
         const role = roleInput.value;
         const action = actionInput.value;
-        
-        // Handle admin specifically (cannot register from portal)
+
+        // Handle admin (cannot register)
         if (role === 'admin') {
             registerToggleBtn.style.display = 'none';
             if(action === 'register') {
@@ -92,16 +311,22 @@
         } else {
             registerToggleBtn.style.display = 'inline-block';
         }
-        
+
         // Hide all extra fields
         document.getElementById('providerFields').style.display = 'none';
         document.getElementById('hospitalFields').style.display = 'none';
-        
-        // Disable requirements on extra fields
         document.querySelectorAll('.p-field, .h-field').forEach(el => el.removeAttribute('required'));
-        
+
         if (action === 'register') {
-            submitBtn.textContent = 'Register';
+            // Registration mode
+            submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Register';
+            contactField.style.display = 'block';
+            contactInput.setAttribute('required', 'true');
+            forgotLink.style.display = 'none';
+            loginHint.style.display = 'none';
+            usernameInput.parentElement.querySelector('label').innerHTML = '<i class="fas fa-user"></i> Username';
+            usernameInput.placeholder = 'Choose a unique username';
+
             if (role === 'provider') {
                 document.getElementById('providerFields').style.display = 'block';
                 document.querySelectorAll('.p-field').forEach(el => el.setAttribute('required', 'true'));
@@ -110,19 +335,34 @@
                 document.querySelectorAll('.h-field').forEach(el => el.setAttribute('required', 'true'));
             }
         } else {
-            submitBtn.textContent = 'Login';
+            // Login mode
+            submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+            contactField.style.display = 'none';
+            contactInput.removeAttribute('required');
+            
+            if (role === 'admin') {
+                forgotLink.style.display = 'none';
+                loginHint.style.display = 'none';
+                usernameInput.parentElement.querySelector('label').innerHTML = '<i class="fas fa-user"></i> Admin Username';
+                usernameInput.placeholder = 'Enter admin username';
+            } else {
+                forgotLink.style.display = 'inline-block';
+                loginHint.style.display = 'block';
+                usernameInput.parentElement.querySelector('label').innerHTML = '<i class="fas fa-user"></i> Username or Contact Number';
+                usernameInput.placeholder = 'Enter username or mobile number';
+            }
         }
     }
-    
+
     roleTabs.forEach(btn => {
         btn.addEventListener('click', (e) => {
             roleTabs.forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
-            roleInput.value = e.target.getAttribute('data-role');
+            e.target.closest('.tab-btn').classList.add('active');
+            roleInput.value = e.target.closest('.tab-btn').getAttribute('data-role');
             updateForm();
         });
     });
-    
+
     toggleBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
             toggleBtns.forEach(b => b.classList.remove('active'));
@@ -131,8 +371,77 @@
             updateForm();
         });
     });
-    
-    // Check initial state
+
     updateForm();
+
+    // ===== FORGOT PASSWORD =====
+    function openForgot() {
+        document.getElementById('forgotModal').classList.add('show');
+        document.getElementById('forgotResult').className = 'forgot-result';
+        document.getElementById('forgotResult').textContent = '';
+        document.getElementById('forgotContact').value = '';
+        document.getElementById('forgotNewPass').value = '';
+        document.getElementById('forgotConfirmPass').value = '';
+    }
+
+    function closeForgot() {
+        document.getElementById('forgotModal').classList.remove('show');
+    }
+
+    function resetPassword() {
+        const contact = document.getElementById('forgotContact').value.trim();
+        const newPass = document.getElementById('forgotNewPass').value;
+        const confirmPass = document.getElementById('forgotConfirmPass').value;
+        const resultDiv = document.getElementById('forgotResult');
+        const btn = document.getElementById('resetBtn');
+
+        if (!contact) {
+            resultDiv.className = 'forgot-result error';
+            resultDiv.textContent = '❌ Please enter your contact number';
+            return;
+        }
+        if (!newPass || newPass.length < 4) {
+            resultDiv.className = 'forgot-result error';
+            resultDiv.textContent = '❌ Password must be at least 4 characters';
+            return;
+        }
+        if (newPass !== confirmPass) {
+            resultDiv.className = 'forgot-result error';
+            resultDiv.textContent = '❌ Passwords do not match!';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
+
+        fetch('/api/forgot_password', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                contact: contact,
+                new_password: newPass,
+                role: roleInput.value
+            })
+        })
+        .then(r => r.json())
+        .then(res => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check"></i> Reset Password';
+            if (res.success) {
+                resultDiv.className = 'forgot-result success';
+                resultDiv.textContent = '✅ ' + res.message;
+                setTimeout(() => closeForgot(), 3000);
+            } else {
+                resultDiv.className = 'forgot-result error';
+                resultDiv.textContent = '❌ ' + res.error;
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check"></i> Reset Password';
+            resultDiv.className = 'forgot-result error';
+            resultDiv.textContent = '❌ Network error. Please try again.';
+        });
+    }
 </script>
 {% endblock %}

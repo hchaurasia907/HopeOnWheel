@@ -3,56 +3,182 @@
 {% block title %}Provider Dashboard | HopeOn Wheel{% endblock %}
 
 {% block content %}
-<div class="dashboard-header glass-card">
-    <h2>Provider: {{ provider.name }} ({{ provider.service_type }})</h2>
-    <div class="wallet-badge">Wallet: ${{ "%.2f"|format(provider.wallet) }}</div>
-</div>
+<style>
+    @keyframes fadeInUp { from { opacity:0; transform:translateY(25px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes pulseGreen { 0%,100% { box-shadow:0 0 5px rgba(16,185,129,0.3); } 50% { box-shadow:0 0 20px rgba(16,185,129,0.6); } }
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
 
-<div class="dashboard-grid">
-    <!-- Active Bookings -->
-    <div class="dashboard-card glass-card span-2">
-        <h3>Manage Bookings</h3>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Tracking ID</th>
-                    <th>Patient/Client</th>
-                    <th>Mobile</th>
-                    <th>Pickup Location</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for b in bookings %}
-                <tr>
-                    <td>{{ b.tracking_id }}</td>
-                    <td>{{ b.booked_by_name }}</td>
-                    <td>{{ b.booked_by_mobile }}</td>
-                    <td>{{ b.pickup_location }}</td>
-                    <td><span class="status {{ b.status.lower() }}">{{ b.status }}</span></td>
-                    <td>
-                        {% if b.status == 'Pending' %}
-                        <button class="btn-success small" onclick="updateBooking('{{ b.tracking_id }}', 'Accepted')">Accept</button>
-                        <button class="btn-danger small" onclick="updateBooking('{{ b.tracking_id }}', 'Rejected')">Reject</button>
-                        {% elif b.status == 'Accepted' %}
-                        <button class="btn-primary small" onclick="updateBooking('{{ b.tracking_id }}', 'Completed')">Mark Completed</button>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="6" style="text-align:center;">No bookings found.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    .provider-dash { animation: fadeInUp 0.5s ease; }
+
+    .prov-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 1.8rem 2.5rem; margin-bottom: 1.5rem;
+        background: linear-gradient(135deg, rgba(15,23,42,0.7), rgba(16,185,129,0.08));
+    }
+    .prov-header h2 { font-size: 1.6rem; }
+    .prov-header h2 span {
+        background: linear-gradient(90deg, #34d399, #60a5fa);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .prov-meta { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+    .prov-badge {
+        padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
+        border: 1px solid rgba(255,255,255,0.15);
+    }
+    .prov-badge.type { background: rgba(139,92,246,0.15); color: #c4b5fd; border-color: rgba(139,92,246,0.3); }
+    .prov-badge.wallet { background: rgba(16,185,129,0.15); color: #6ee7b7; border-color: rgba(16,185,129,0.3); animation: pulseGreen 3s infinite; }
+
+    /* GPS Card */
+    .gps-card {
+        padding: 1.8rem;
+        background: linear-gradient(135deg, rgba(16,185,129,0.06), rgba(59,130,246,0.04));
+        border: 1px solid rgba(16,185,129,0.12); margin-bottom: 1.5rem;
+    }
+    .gps-card h3 { border: none; padding: 0; margin-bottom: 1rem; }
+    .gps-status {
+        display: flex; align-items: center; gap: 10px; margin-bottom: 1rem;
+        font-size: 0.95rem;
+    }
+    .gps-dot {
+        width: 10px; height: 10px; border-radius: 50%; background: #94a3b8;
+        transition: background 0.3s ease;
+    }
+    .gps-dot.active { background: #10b981; animation: blink 1.5s infinite; }
+    .gps-btn {
+        padding: 0.8rem 2rem; border-radius: 12px; border: none;
+        font-family: var(--font); font-weight: 700; font-size: 0.95rem;
+        cursor: pointer; transition: all 0.3s ease; display: inline-flex;
+        align-items: center; gap: 8px;
+    }
+    .gps-btn.start { background: linear-gradient(135deg, #10b981, #059669); color: white; box-shadow: 0 4px 15px rgba(16,185,129,0.3); }
+    .gps-btn.stop { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; box-shadow: 0 4px 15px rgba(239,68,68,0.3); }
+    .gps-btn:hover { transform: translateY(-2px); }
+
+    /* Booking Table Enhanced */
+    .booking-table-card { padding: 1.5rem; }
+    .booking-table-card h3 { display: flex; align-items: center; gap: 8px; }
+    .booking-count {
+        background: rgba(59,130,246,0.15); color: #93c5fd;
+        padding: 2px 10px; border-radius: 10px; font-size: 0.8rem;
+    }
+
+    .prov-table { width: 100%; border-collapse: collapse; }
+    .prov-table th {
+        padding: 0.9rem 1rem; text-align: left;
+        color: var(--text-muted); font-weight: 600; text-transform: uppercase;
+        font-size: 0.75rem; letter-spacing: 1px;
+        background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .prov-table td {
+        padding: 0.8rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.03);
+        font-size: 0.9rem;
+    }
+    .prov-table tbody tr { transition: all 0.3s ease; }
+    .prov-table tbody tr:hover { background: rgba(59,130,246,0.06); }
+
+    .action-group { display: flex; gap: 6px; flex-wrap: wrap; }
+    .act-btn {
+        padding: 0.4rem 1rem; border-radius: 8px; border: none;
+        cursor: pointer; font-family: var(--font); font-size: 0.8rem;
+        font-weight: 600; transition: all 0.3s ease; display: inline-flex;
+        align-items: center; gap: 4px;
+    }
+    .act-btn.accept { background: rgba(16,185,129,0.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.2); }
+    .act-btn.accept:hover { background: #10b981; color: white; transform: scale(1.05); }
+    .act-btn.reject { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.2); }
+    .act-btn.reject:hover { background: #ef4444; color: white; transform: scale(1.05); }
+    .act-btn.complete { background: rgba(59,130,246,0.15); color: #93c5fd; border: 1px solid rgba(59,130,246,0.2); }
+    .act-btn.complete:hover { background: #3b82f6; color: white; transform: scale(1.05); }
+
+    .prov-toast {
+        position: fixed; bottom: 30px; right: 30px;
+        padding: 1rem 1.5rem; border-radius: 12px;
+        font-weight: 600; z-index: 9999;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        animation: slideIn 0.4s ease, fadeOutT 0.4s ease 2.5s forwards;
+    }
+    .prov-toast.success { background: rgba(16,185,129,0.95); color: white; }
+    .prov-toast.error { background: rgba(239,68,68,0.95); color: white; }
+    @keyframes slideIn { from { transform:translateX(100%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+    @keyframes fadeOutT { to { opacity:0; transform:translateY(20px); } }
+</style>
+
+<div class="provider-dash">
+    <!-- Header -->
+    <div class="prov-header glass-card">
+        <div>
+            <h2>🚑 <span>{{ provider.name }}</span></h2>
+            <p style="color: var(--text-muted); margin-top: 4px; font-size: 0.9rem;">Ambulance: {{ provider.ambulance_number }}</p>
+        </div>
+        <div class="prov-meta">
+            <span class="prov-badge type">{{ '🧑' if provider.service_type == 'Human' else '🐾' }} {{ provider.service_type }}</span>
+            <span class="prov-badge wallet">💰 ₹{{ "%.2f"|format(provider.wallet) }}</span>
+        </div>
     </div>
 
-    <!-- Update Location -->
-    <div class="dashboard-card glass-card">
-        <h3>Live GPS Broadcast</h3>
-        <p><strong>Current Info:</strong> <span id="locStatus">{{ provider.current_location }}</span></p>
-        <div class="grid-form">
-            <button type="button" id="toggleGpsBtn" class="btn-success" onclick="toggleGPS()">Start Live Tracking</button>
+    <!-- GPS Broadcast -->
+    <div class="gps-card glass-card">
+        <h3><i class="fas fa-satellite-dish"></i> Live GPS Broadcast</h3>
+        <div class="gps-status">
+            <div class="gps-dot" id="gpsDot"></div>
+            <span id="locStatus">{{ provider.current_location }}</span>
+        </div>
+        <button class="gps-btn start" id="toggleGpsBtn" onclick="toggleGPS()">
+            <i class="fas fa-broadcast-tower"></i> Start Live Tracking
+        </button>
+    </div>
+
+    <!-- Bookings Table -->
+    <div class="booking-table-card glass-card">
+        <h3>
+            <i class="fas fa-clipboard-list"></i> Manage Bookings
+            <span class="booking-count">{{ bookings|length }}</span>
+        </h3>
+        <div style="overflow-x: auto;">
+            <table class="prov-table">
+                <thead>
+                    <tr>
+                        <th>Tracking ID</th>
+                        <th>Patient</th>
+                        <th>Mobile</th>
+                        <th>Pickup Location</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in bookings|reverse %}
+                    <tr id="booking-{{ b.tracking_id }}">
+                        <td><strong style="color: #93c5fd;">{{ b.tracking_id }}</strong></td>
+                        <td>{{ b.booked_by_name }}</td>
+                        <td><a href="tel:{{ b.booked_by_mobile }}" style="color: #6ee7b7;">📞 {{ b.booked_by_mobile }}</a></td>
+                        <td style="max-width: 200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ b.pickup_location }}">
+                            📍 {{ b.pickup_location }}
+                        </td>
+                        <td><span class="status {{ b.status.lower() }}">{{ b.status }}</span></td>
+                        <td>
+                            <div class="action-group">
+                                {% if b.status == 'Pending' %}
+                                <button class="act-btn accept" onclick="updateBooking('{{ b.tracking_id }}', 'Accepted')"><i class="fas fa-check"></i> Accept</button>
+                                <button class="act-btn reject" onclick="updateBooking('{{ b.tracking_id }}', 'Rejected')"><i class="fas fa-times"></i> Reject</button>
+                                {% elif b.status == 'Accepted' %}
+                                <button class="act-btn complete" onclick="updateBooking('{{ b.tracking_id }}', 'Completed')"><i class="fas fa-flag-checkered"></i> Complete</button>
+                                {% elif b.status == 'Completed' %}
+                                <span style="color: #6ee7b7; font-size:0.85rem;">✅ Done</span>
+                                {% elif b.status == 'Rejected' %}
+                                <span style="color: #fca5a5; font-size:0.85rem;">❌ Rejected</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">
+                        <div style="font-size:2rem; margin-bottom:0.5rem;">📋</div>
+                        No bookings assigned to you yet
+                    </td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -67,11 +193,20 @@
             body: JSON.stringify({tracking_id: trackingId, status: status})
         }).then(r => r.json()).then(res => {
             if(res.success) {
-                location.reload();
+                showToast(`Booking ${trackingId} → ${status}`, 'success');
+                setTimeout(() => location.reload(), 1500);
             } else {
-                alert("Error: " + res.error);
+                showToast('Error: ' + res.error, 'error');
             }
         });
+    }
+
+    function showToast(msg, type) {
+        const t = document.createElement('div');
+        t.className = 'prov-toast ' + type;
+        t.textContent = (type === 'success' ? '✅ ' : '❌ ') + msg;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 3000);
     }
 
     let watchId = null;
@@ -79,33 +214,33 @@
     function toggleGPS() {
         const btn = document.getElementById('toggleGpsBtn');
         const statusSpan = document.getElementById('locStatus');
+        const dot = document.getElementById('gpsDot');
 
         if (watchId !== null) {
-            // Stop Tracking
             navigator.geolocation.clearWatch(watchId);
             watchId = null;
-            btn.textContent = 'Start Live Tracking';
-            btn.className = 'btn-success';
+            btn.innerHTML = '<i class="fas fa-broadcast-tower"></i> Start Live Tracking';
+            btn.className = 'gps-btn start';
+            dot.classList.remove('active');
             statusSpan.textContent = 'Tracking Stopped (Last known sent).';
             return;
         }
 
         if (!navigator.geolocation) {
-            alert('Your browser does not support Geolocation APIs!');
+            showToast('Your browser does not support Geolocation!', 'error');
             return;
         }
 
-        // Start Tracking
-        btn.textContent = 'Stop Live Tracking';
-        btn.className = 'btn-danger';
+        btn.innerHTML = '<i class="fas fa-stop-circle"></i> Stop Live Tracking';
+        btn.className = 'gps-btn stop';
+        dot.classList.add('active');
         statusSpan.textContent = 'Acquiring GPS Signal...';
-        
+
         watchId = navigator.geolocation.watchPosition((position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
-            statusSpan.innerHTML = `📡 Transmitting: ${lat.toFixed(4)}, ${lng.toFixed(4)} <br><small>Accuracy: ±${Math.round(position.coords.accuracy)}m</small>`;
-            
-            // Push to backend
+            statusSpan.innerHTML = `📡 <strong>${lat.toFixed(5)}, ${lng.toFixed(5)}</strong> <span style="color:var(--text-muted); font-size:0.8rem;">· Accuracy: ±${Math.round(position.coords.accuracy)}m</span>`;
+
             fetch('/api/update_provider_gps', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -114,11 +249,10 @@
 
         }, (error) => {
             let msg = 'GPS Error: Please enable location services.';
-            if (error.code === 1) msg = 'Location denied. Please allow GPS access in your browser settings.';
-            else if (error.code === 3) msg = 'GPS Signal Timeout. Restarting...';
-            
-            alert(msg);
-            toggleGPS(); // auto-stop on critical error
+            if (error.code === 1) msg = 'Location denied. Please allow GPS.';
+            else if (error.code === 3) msg = 'GPS Timeout. Restarting...';
+            showToast(msg, 'error');
+            toggleGPS();
         }, {
             enableHighAccuracy: true,
             timeout: 15000,

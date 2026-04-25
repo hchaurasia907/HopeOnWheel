@@ -3,110 +3,242 @@
 {% block title %}Hospital Dashboard | HopeOn Wheel{% endblock %}
 
 {% block content %}
-<div class="dashboard-header glass-card">
-    <h2>Hospital: {{ hospital.name }}</h2>
-    <p>Location: {{ hospital.location }}</p>
-</div>
+<style>
+    @keyframes fadeInUp { from { opacity:0; transform:translateY(25px); } to { opacity:1; transform:translateY(0); } }
+    .leaflet-routing-container { display: none !important; }
 
-<div class="dashboard-grid">
-    <!-- Incoming Patients (Accepted Bookings logic mapping) -->
-    <div class="dashboard-card glass-card span-2">
-        <h3>Incoming Patients (Accepted Bookings)</h3>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Tracking ID</th>
-                    <th>Patient Name</th>
-                    <th>Pickup Location</th>
-                    <th>Ambulance</th>
-                    <th>Doctor Assigned</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for b in bookings %}
-                <tr>
-                    <td>{{ b.tracking_id }}</td>
-                    <td>{{ b.booked_by_name }}</td>
-                    <td>
-                        {{ b.pickup_location }}<br>
-                        <button class="btn-secondary small" style="margin-top: 5px;" data-loc="{{ b.pickup_location }}" onclick="viewLocation(this.getAttribute('data-loc'))">📍 View Map</button>
-                    </td>
-                    <td>{{ b.provider_name }} ({{ b.ambulance_number }})</td>
-                    <td>
-                        {% if b.assigned_doctor %}
-                           {{ b.assigned_doctor }}
-                        {% else %}
-                           <em>None assigned</em>
-                           <!-- Mapped to Add Doctor / Assign Doctor functionality in Java -->
-                           <button class="btn-secondary small" onclick="openAssignModal('{{ b.tracking_id }}')">Assign</button>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="5" style="text-align:center;">No incoming patients currently.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    .hospital-dash { animation: fadeInUp 0.5s ease; }
+
+    .hosp-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 1.8rem 2.5rem; margin-bottom: 1.5rem;
+        background: linear-gradient(135deg, rgba(15,23,42,0.7), rgba(139,92,246,0.08));
+    }
+    .hosp-header h2 { font-size: 1.6rem; }
+    .hosp-header h2 span {
+        background: linear-gradient(90deg, #c084fc, #60a5fa);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hosp-header .loc-badge {
+        background: rgba(139,92,246,0.15); color: #c4b5fd;
+        padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
+        border: 1px solid rgba(139,92,246,0.3);
+    }
+
+    /* Stats */
+    .hosp-stats { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .hosp-stat {
+        flex: 1; min-width: 150px; padding: 1.2rem 1.5rem; border-radius: 14px;
+        background: var(--bg-card); border: 1px solid rgba(255,255,255,0.06);
+        transition: transform 0.3s ease;
+    }
+    .hosp-stat:hover { transform: translateY(-4px); }
+    .hosp-stat .s-num { font-size: 2rem; font-weight: 800; }
+    .hosp-stat .s-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+    .hosp-stat.purple .s-num { color: #c4b5fd; }
+    .hosp-stat.blue .s-num { color: #93c5fd; }
+    .hosp-stat.green .s-num { color: #6ee7b7; }
+
+    /* Doctors Grid */
+    .doctors-section { margin-bottom: 1.5rem; }
+    .doctors-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+    .doc-card {
+        padding: 1rem 1.2rem; border-radius: 12px;
+        background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+        transition: all 0.3s ease; display: flex; justify-content: space-between; align-items: center;
+    }
+    .doc-card:hover { background: rgba(139,92,246,0.06); border-color: rgba(139,92,246,0.15); }
+    .doc-name { font-weight: 600; font-size: 0.95rem; }
+    .doc-avail { font-size: 0.8rem; font-weight: 600; padding: 3px 10px; border-radius: 10px; }
+    .doc-avail.available { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+    .doc-avail.busy { background: rgba(239,68,68,0.15); color: #fca5a5; }
+
+    /* Patients Table */
+    .patients-table { width: 100%; border-collapse: collapse; }
+    .patients-table th {
+        padding: 0.9rem 1rem; text-align: left;
+        color: var(--text-muted); font-weight: 600; text-transform: uppercase;
+        font-size: 0.75rem; letter-spacing: 1px;
+        background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .patients-table td {
+        padding: 0.8rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.03);
+        font-size: 0.9rem;
+    }
+    .patients-table tbody tr { transition: all 0.3s ease; }
+    .patients-table tbody tr:hover { background: rgba(139,92,246,0.06); }
+
+    .assign-btn {
+        padding: 0.4rem 1rem; border-radius: 8px; border: none;
+        background: rgba(139,92,246,0.15); color: #c4b5fd;
+        border: 1px solid rgba(139,92,246,0.2);
+        cursor: pointer; font-family: var(--font); font-size: 0.8rem; font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .assign-btn:hover { background: #8b5cf6; color: white; transform: scale(1.05); }
+    .map-btn {
+        padding: 0.4rem 0.9rem; border-radius: 8px; border: none;
+        background: rgba(59,130,246,0.15); color: #93c5fd;
+        border: 1px solid rgba(59,130,246,0.2);
+        cursor: pointer; font-family: var(--font); font-size: 0.8rem; font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .map-btn:hover { background: #3b82f6; color: white; transform: scale(1.05); }
+
+    .hosp-toast {
+        position: fixed; bottom: 30px; right: 30px;
+        padding: 1rem 1.5rem; border-radius: 12px;
+        font-weight: 600; z-index: 9999;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        animation: slideIn 0.4s ease, fadeOutT 0.4s ease 2.5s forwards;
+    }
+    .hosp-toast.success { background: rgba(16,185,129,0.95); color: white; }
+    @keyframes slideIn { from { transform:translateX(100%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+    @keyframes fadeOutT { to { opacity:0; transform:translateY(20px); } }
+</style>
+
+<div class="hospital-dash">
+    <!-- Header -->
+    <div class="hosp-header glass-card">
+        <div>
+            <h2>🏥 <span>{{ hospital.name }}</span></h2>
+            <p style="color: var(--text-muted); margin-top: 4px; font-size: 0.9rem;"><i class="fas fa-map-marker-alt"></i> {{ hospital.location }}</p>
+        </div>
+        <span class="loc-badge"><i class="fas fa-hospital"></i> Hospital Portal</span>
     </div>
 
-    <!-- Doctors -->
-    <div class="dashboard-card glass-card">
-        <h3>Doctors Directory</h3>
-        <ul style="list-style: none; padding: 0;">
+    <!-- Stats -->
+    <div class="hosp-stats">
+        <div class="hosp-stat purple glass-card">
+            <div class="s-num">{{ doctors|length }}</div>
+            <div class="s-label">Total Doctors</div>
+        </div>
+        <div class="hosp-stat green glass-card">
+            <div class="s-num">{{ doctors|selectattr('available')|list|length }}</div>
+            <div class="s-label">Available</div>
+        </div>
+        <div class="hosp-stat blue glass-card">
+            <div class="s-num">{{ bookings|length }}</div>
+            <div class="s-label">Incoming Patients</div>
+        </div>
+    </div>
+
+    <!-- Doctors Section -->
+    <div class="doctors-section glass-card" style="padding: 1.5rem;">
+        <h3 style="display:flex; align-items:center; gap:8px; margin-bottom:1rem;">
+            <i class="fas fa-user-md"></i> Doctors Directory
+        </h3>
+        <div class="doctors-grid">
             {% for d in doctors %}
-                <li style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                    <strong>Dr. {{ d.name }}</strong>
-                    <span style="float: right; color: {% if d.available %}#4caf50{% else %}#f44336{% endif %}">
-                        {{ 'Available' if d.available else 'Busy' }}
-                    </span>
-                </li>
+            <div class="doc-card">
+                <div class="doc-name">🩺 Dr. {{ d.name }}</div>
+                <span class="doc-avail {{ 'available' if d.available else 'busy' }}">
+                    {{ '✅ Free' if d.available else '🔴 Busy' }}
+                </span>
+            </div>
             {% else %}
-                <li>No doctors enlisted.</li>
+            <p style="color: var(--text-muted); padding: 1rem;">No doctors added yet.</p>
             {% endfor %}
-        </ul>
-        <button class="btn-primary" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('addDoctorModal').style.display='flex'">+ Add Doctor</button>
+        </div>
+        <button class="btn-primary" style="width: 100%;" onclick="document.getElementById('addDoctorModal').style.display='flex'">
+            <i class="fas fa-plus"></i> Add New Doctor
+        </button>
+    </div>
+
+    <!-- Incoming Patients -->
+    <div class="glass-card" style="padding: 1.5rem;">
+        <h3 style="display:flex; align-items:center; gap:8px; margin-bottom:1rem;">
+            <i class="fas fa-procedures"></i> Incoming Patients
+            <span style="background:rgba(59,130,246,0.15); color:#93c5fd; padding:2px 10px; border-radius:10px; font-size:0.8rem;">{{ bookings|length }}</span>
+        </h3>
+        <div style="overflow-x: auto;">
+            <table class="patients-table">
+                <thead>
+                    <tr>
+                        <th>Tracking ID</th>
+                        <th>Patient</th>
+                        <th>Pickup Location</th>
+                        <th>Ambulance</th>
+                        <th>Doctor Assigned</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in bookings %}
+                    <tr>
+                        <td><strong style="color: #93c5fd;">{{ b.tracking_id }}</strong></td>
+                        <td>{{ b.booked_by_name }}</td>
+                        <td style="max-width: 180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ b.pickup_location }}">
+                            📍 {{ b.pickup_location }}
+                        </td>
+                        <td>{{ b.provider_name }} <span style="color:var(--text-muted);">({{ b.ambulance_number }})</span></td>
+                        <td>
+                            {% if b.assigned_doctor %}
+                            <span style="color: #6ee7b7;">🩺 {{ b.assigned_doctor }}</span>
+                            {% else %}
+                            <em style="color: var(--text-muted);">Not assigned</em>
+                            {% endif %}
+                        </td>
+                        <td style="white-space: nowrap;">
+                            {% if not b.assigned_doctor %}
+                            <button class="assign-btn" onclick="openAssignModal('{{ b.tracking_id }}')"><i class="fas fa-user-md"></i> Assign</button>
+                            {% endif %}
+                            <button class="map-btn" data-loc="{{ b.pickup_location }}" onclick="viewLocation(this.getAttribute('data-loc'))"><i class="fas fa-map"></i> Map</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">
+                        <div style="font-size:2rem; margin-bottom:0.5rem;">🏥</div>
+                        No incoming patients currently
+                    </td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
-<!-- Modals -->
+<!-- Add Doctor Modal -->
 <div id="addDoctorModal" class="modal">
     <div class="modal-content glass-card">
         <span class="close" onclick="document.getElementById('addDoctorModal').style.display='none'">&times;</span>
-        <h3>Add New Doctor</h3>
+        <h3><i class="fas fa-user-md"></i> Add New Doctor</h3>
         <form id="addDoctorForm" class="grid-form">
             <div class="input-group span-full">
                 <label>Doctor Name</label>
-                <input type="text" id="doc_name" required>
+                <input type="text" id="doc_name" required placeholder="e.g. Dr. Sharma">
             </div>
-            <button type="button" class="btn-primary span-full" onclick="addDoctor()">Add Doctor</button>
+            <button type="button" class="btn-primary span-full" onclick="addDoctor()"><i class="fas fa-plus"></i> Add Doctor</button>
         </form>
     </div>
 </div>
 
+<!-- Location Map Modal -->
 <div id="locationModal" class="modal">
     <div class="modal-content glass-card">
         <span class="close" onclick="closeLocationModal()">&times;</span>
-        <h3>Patient Pickup Location</h3>
+        <h3><i class="fas fa-map-marked-alt"></i> Patient Pickup Location</h3>
         <p id="locText"></p>
-        <div id="hospitalMap" style="height: 300px; width: 100%; border-radius: 10px; margin-top:15px; z-index: 10;"></div>
+        <div id="hospitalMap" style="height: 350px; width: 100%; border-radius: 12px; margin-top:15px; z-index: 10;"></div>
     </div>
 </div>
 
+<!-- Assign Doctor Modal -->
 <div id="assignDoctorModal" class="modal">
     <div class="modal-content glass-card">
         <span class="close" onclick="document.getElementById('assignDoctorModal').style.display='none'">&times;</span>
-        <h3>Assign Doctor to Patient</h3>
+        <h3><i class="fas fa-user-md"></i> Assign Doctor to Patient</h3>
         <form class="grid-form">
             <input type="hidden" id="assign_tracking_id">
             <div class="input-group span-full">
                 <label>Select Available Doctor</label>
                 <select id="assign_doc_name" required>
                     {% for d in doctors if d.available %}
-                    <option value="{{ d.name }}">{{ d.name }}</option>
+                    <option value="{{ d.name }}">Dr. {{ d.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <button type="button" class="btn-primary span-full" onclick="assignDoctor()">Assign</button>
+            <button type="button" class="btn-primary span-full" onclick="assignDoctor()"><i class="fas fa-check"></i> Assign</button>
         </form>
     </div>
 </div>
@@ -117,15 +249,14 @@
     function addDoctor() {
         const name = document.getElementById('doc_name').value;
         if (!name) return;
-        
         fetch('/api/add_doctor', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({name: name})
         }).then(r => r.json()).then(res => {
             if(res.success) {
-                alert('Doctor added successfully!');
-                location.reload();
+                showToast('Doctor added successfully!');
+                setTimeout(() => location.reload(), 1500);
             } else {
                 alert('Error: ' + res.error);
             }
@@ -145,29 +276,35 @@
     function assignDoctor() {
         const trackingId = document.getElementById('assign_tracking_id').value;
         const docName = document.getElementById('assign_doc_name').value;
-        
         if (!docName || !trackingId) return;
-
         fetch('/api/assign_doctor', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({tracking_id: trackingId, doctor_name: docName})
         }).then(r => r.json()).then(res => {
             if(res.success) {
-                alert('Doctor assigned successfully!');
-                location.reload();
+                showToast('Doctor assigned successfully!');
+                setTimeout(() => location.reload(), 1500);
             } else {
                 alert('Error: ' + res.error);
             }
         });
     }
 
-    let hospitalMap, hospitalMarker;
+    function showToast(msg) {
+        const t = document.createElement('div');
+        t.className = 'hosp-toast success';
+        t.textContent = '✅ ' + msg;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 3000);
+    }
+
+    let hospitalMap = null, hospitalMarker = null;
 
     function viewLocation(locationStr) {
-        document.getElementById('locText').innerHTML = `<strong>Location:</strong> ${locationStr}`;
+        document.getElementById('locText').innerHTML = `<strong>📍 Location:</strong> ${locationStr}`;
         document.getElementById('locationModal').style.display = 'flex';
-        
+
         fetch(`/api/geocode?location=${encodeURIComponent(locationStr)}`)
             .then(r => r.json())
             .then(geo => {
@@ -175,19 +312,26 @@
                 let lng = parseFloat(geo.lng);
                 if (isNaN(lat) || isNaN(lng)) { lat = 28.6139; lng = 77.2090; }
 
-                if (!hospitalMap) {
-                    hospitalMap = L.map('hospitalMap').setView([lat, lng], 13);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        attribution: '&copy; OpenStreetMap contributors'
-                    }).addTo(hospitalMap);
-                    hospitalMarker = L.marker([lat, lng]).addTo(hospitalMap);
-                } else {
-                    hospitalMap.setView([lat, lng], 13);
-                    if (hospitalMarker) {
-                        hospitalMarker.setLatLng([lat, lng]);
-                    }
+                if (hospitalMap) {
+                    hospitalMap.remove();
+                    hospitalMap = null;
                 }
-                
+
+                hospitalMap = L.map('hospitalMap').setView([lat, lng], 14);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap'
+                }).addTo(hospitalMap);
+
+                const icon = L.divIcon({
+                    html: '<div style="background:#8b5cf6; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; border:3px solid white; box-shadow:0 3px 10px rgba(0,0,0,0.4);">📍</div>',
+                    iconSize: [36, 36], iconAnchor: [18, 18], className: ''
+                });
+
+                L.marker([lat, lng], { icon: icon })
+                    .addTo(hospitalMap)
+                    .bindPopup(`<b>📍 Patient Location</b><br>${locationStr}`)
+                    .openPopup();
+
                 setTimeout(() => hospitalMap.invalidateSize(), 300);
             });
     }

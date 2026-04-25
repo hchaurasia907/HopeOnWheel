@@ -3,23 +3,1155 @@
 {% block title %}Admin Dashboard | HopeOn Wheel{% endblock %}
 
 {% block content %}
-<div class="dashboard-header glass-card">
-    <h2>System Administration</h2>
-</div>
+<style>
+    /* ===== ADMIN DASHBOARD STYLES ===== */
+    .admin-dashboard { animation: fadeInUp 0.6s ease-out; }
 
-<div class="dashboard-grid">
-    <!-- Quick Stats -->
-    <div class="dashboard-card glass-card span-full" style="display: flex; gap: 20px; justify-content: space-around;">
-        <div style="text-align: center;"><h3>{{ users|length }}</h3><p>Total Users</p></div>
-        <div style="text-align: center;"><h3>{{ providers|length }}</h3><p>Providers</p></div>
-        <div style="text-align: center;"><h3>{{ hospitals|length }}</h3><p>Hospitals</p></div>
-        <div style="text-align: center;"><h3>{{ bookings|length }}</h3><p>Total Bookings</p></div>
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes countUp {
+        from { opacity: 0; transform: scale(0.5); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+    }
+    @keyframes pulseGlow {
+        0%, 100% { box-shadow: 0 0 5px rgba(59,130,246,0.3); }
+        50% { box-shadow: 0 0 20px rgba(59,130,246,0.6); }
+    }
+    @keyframes slideInLeft {
+        from { opacity: 0; transform: translateX(-30px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    /* Header */
+    .admin-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.8rem 2.5rem;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(135deg, rgba(15,23,42,0.7), rgba(59,130,246,0.08));
+        position: relative;
+        overflow: hidden;
+    }
+    .admin-header::before {
+        content: '';
+        position: absolute;
+        top: 0; left: -100%;
+        width: 300%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(59,130,246,0.05), transparent);
+        animation: shimmer 8s infinite linear;
+    }
+    .admin-header h2 {
+        font-size: 1.8rem;
+        background: linear-gradient(90deg, #60a5fa, #c084fc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    .admin-header .admin-badge {
+        background: rgba(59,130,246,0.15);
+        color: #93c5fd;
+        padding: 0.4rem 1.2rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        border: 1px solid rgba(59,130,246,0.3);
+        animation: pulseGlow 3s infinite;
+    }
+
+    /* Tab Navigation */
+    .admin-tabs {
+        display: flex;
+        gap: 4px;
+        padding: 6px;
+        background: rgba(0,0,0,0.3);
+        border-radius: 16px;
+        margin-bottom: 2rem;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+    .admin-tabs::-webkit-scrollbar { display: none; }
+    .admin-tab {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        font-family: var(--font);
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        border-radius: 12px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        white-space: nowrap;
+        position: relative;
+    }
+    .admin-tab:hover {
+        color: var(--text-main);
+        background: rgba(255,255,255,0.05);
+    }
+    .admin-tab.active {
+        background: linear-gradient(135deg, var(--primary), #8b5cf6);
+        color: white;
+        box-shadow: 0 4px 15px rgba(59,130,246,0.4);
+    }
+    .admin-tab .tab-count {
+        display: inline-block;
+        background: rgba(255,255,255,0.2);
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        margin-left: 6px;
+    }
+
+    /* Tab Content */
+    .tab-content { display: none; animation: fadeIn 0.4s ease; }
+    .tab-content.active { display: block; }
+
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1.2rem;
+        margin-bottom: 2.5rem;
+    }
+    .stat-card {
+        padding: 1.5rem;
+        border-radius: 16px;
+        background: var(--bg-card);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255,255,255,0.06);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .stat-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 12px 35px rgba(0,0,0,0.3);
+    }
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 3px;
+        border-radius: 16px 16px 0 0;
+    }
+    .stat-card.blue::after { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    .stat-card.green::after { background: linear-gradient(90deg, #10b981, #34d399); }
+    .stat-card.purple::after { background: linear-gradient(90deg, #8b5cf6, #c084fc); }
+    .stat-card.amber::after { background: linear-gradient(90deg, #f59e0b, #fcd34d); }
+    .stat-card.red::after { background: linear-gradient(90deg, #ef4444, #f87171); }
+    .stat-card.cyan::after { background: linear-gradient(90deg, #06b6d4, #67e8f9); }
+
+    .stat-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 800;
+        line-height: 1;
+        margin-bottom: 0.3rem;
+        animation: countUp 0.8s ease-out;
+    }
+    .stat-card.blue .stat-number { color: #60a5fa; }
+    .stat-card.green .stat-number { color: #34d399; }
+    .stat-card.purple .stat-number { color: #c084fc; }
+    .stat-card.amber .stat-number { color: #fcd34d; }
+    .stat-card.red .stat-number { color: #f87171; }
+    .stat-card.cyan .stat-number { color: #67e8f9; }
+
+    .stat-label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    /* Status Breakdown */
+    .status-breakdown {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    .status-card {
+        padding: 1.2rem 1.5rem;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: transform 0.3s ease;
+    }
+    .status-card:hover { transform: scale(1.03); }
+    .status-card.pending-card {
+        background: rgba(245,158,11,0.1);
+        border: 1px solid rgba(245,158,11,0.2);
+    }
+    .status-card.accepted-card {
+        background: rgba(59,130,246,0.1);
+        border: 1px solid rgba(59,130,246,0.2);
+    }
+    .status-card.completed-card {
+        background: rgba(16,185,129,0.1);
+        border: 1px solid rgba(16,185,129,0.2);
+    }
+    .status-card.rejected-card {
+        background: rgba(239,68,68,0.1);
+        border: 1px solid rgba(239,68,68,0.2);
+    }
+    .status-dot {
+        width: 12px; height: 12px;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+    .status-card.pending-card .status-dot { background: #f59e0b; }
+    .status-card.accepted-card .status-dot { background: #3b82f6; }
+    .status-card.completed-card .status-dot { background: #10b981; }
+    .status-card.rejected-card .status-dot { background: #ef4444; }
+
+    /* Search Bar */
+    .table-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.2rem;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    .search-box {
+        display: flex;
+        align-items: center;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        padding: 0.6rem 1rem;
+        gap: 8px;
+        flex: 1;
+        max-width: 350px;
+        transition: all 0.3s ease;
+    }
+    .search-box:focus-within {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+    .search-box input {
+        background: transparent;
+        border: none;
+        color: var(--text-main);
+        font-family: var(--font);
+        font-size: 0.9rem;
+        outline: none;
+        width: 100%;
+    }
+    .search-box input::placeholder { color: var(--text-muted); }
+
+    /* Data Tables Enhanced */
+    .admin-table-wrap {
+        overflow-x: auto;
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,0.06);
+    }
+    .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .admin-table th {
+        padding: 1rem 1.2rem;
+        text-align: left;
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 1.2px;
+        background: rgba(0,0,0,0.3);
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        white-space: nowrap;
+    }
+    .admin-table td {
+        padding: 0.9rem 1.2rem;
+        border-bottom: 1px solid rgba(255,255,255,0.03);
+        font-size: 0.9rem;
+        transition: background 0.2s ease;
+    }
+    .admin-table tbody tr {
+        transition: all 0.3s ease;
+    }
+    .admin-table tbody tr:hover {
+        background: rgba(59,130,246,0.06);
+    }
+    .admin-table tbody tr.deleting {
+        animation: slideOut 0.4s ease forwards;
+    }
+    @keyframes slideOut {
+        to { opacity: 0; transform: translateX(50px); height: 0; padding: 0; }
+    }
+
+    /* Action buttons */
+    .action-btn {
+        padding: 0.4rem 0.9rem;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-family: var(--font);
+        font-size: 0.8rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .action-btn.delete {
+        background: rgba(239,68,68,0.15);
+        color: #f87171;
+        border: 1px solid rgba(239,68,68,0.2);
+    }
+    .action-btn.delete:hover {
+        background: #ef4444;
+        color: white;
+        transform: scale(1.05);
+    }
+    .action-btn.view-map {
+        background: rgba(59,130,246,0.15);
+        color: #93c5fd;
+        border: 1px solid rgba(59,130,246,0.2);
+    }
+    .action-btn.view-map:hover {
+        background: #3b82f6;
+        color: white;
+        transform: scale(1.05);
+    }
+    .action-btn.info {
+        background: rgba(139,92,246,0.15);
+        color: #c4b5fd;
+        border: 1px solid rgba(139,92,246,0.2);
+    }
+    .action-btn.info:hover {
+        background: #8b5cf6;
+        color: white;
+    }
+
+    /* Map Container */
+    .admin-map-container {
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    #adminMap {
+        height: 500px;
+        width: 100%;
+        z-index: 10;
+    }
+    .map-controls {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+    .map-filter-btn {
+        padding: 0.5rem 1.2rem;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 10px;
+        background: rgba(255,255,255,0.05);
+        color: var(--text-muted);
+        font-family: var(--font);
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .map-filter-btn:hover, .map-filter-btn.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+    .map-legend {
+        display: flex;
+        gap: 1.5rem;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+    }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+    .legend-dot {
+        width: 10px; height: 10px;
+        border-radius: 50%;
+    }
+
+    /* Section Title */
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 1.5rem;
+    }
+    .section-title h3 {
+        font-size: 1.3rem;
+        margin: 0;
+        border: none;
+        padding: 0;
+    }
+    .section-title .record-count {
+        background: rgba(255,255,255,0.08);
+        padding: 3px 10px;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    /* Recent Activity */
+    .recent-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+    .recent-card {
+        padding: 1.5rem;
+    }
+    .recent-card h4 {
+        margin-bottom: 1rem;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .recent-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.7rem 0;
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+        animation: slideInLeft 0.4s ease;
+    }
+    .recent-item:last-child { border: none; }
+
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-muted);
+    }
+    .empty-state .empty-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    /* Confirmation Modal */
+    .confirm-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(8px);
+        z-index: 5000;
+        align-items: center;
+        justify-content: center;
+    }
+    .confirm-overlay.show { display: flex; }
+    .confirm-box {
+        background: rgba(15,23,42,0.98);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 20px;
+        padding: 2.5rem;
+        max-width: 420px;
+        width: 90%;
+        text-align: center;
+        animation: fadeInUp 0.3s ease;
+        box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+    }
+    .confirm-box h3 { margin-bottom: 0.8rem; color: #f87171; }
+    .confirm-box p { color: var(--text-muted); margin-bottom: 1.5rem; }
+    .confirm-actions { display: flex; gap: 1rem; justify-content: center; }
+
+    /* Toast */
+    .admin-toast {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: rgba(16,185,129,0.95);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        z-index: 9999;
+        box-shadow: 0 8px 25px rgba(16,185,129,0.4);
+        animation: slideIn 0.4s ease, fadeOut 0.4s ease 2.5s forwards;
+    }
+    @keyframes fadeOut { to { opacity: 0; transform: translateY(20px); } }
+
+    @media (max-width: 768px) {
+        .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        .recent-grid { grid-template-columns: 1fr; }
+        .admin-header { flex-direction: column; gap: 1rem; text-align: center; }
+        .admin-tabs { justify-content: flex-start; }
+    }
+</style>
+
+<div class="admin-dashboard">
+    <!-- Header -->
+    <div class="admin-header glass-card">
+        <div>
+            <h2>⚕️ Admin Command Center</h2>
+            <p style="color: var(--text-muted); margin-top: 4px; font-size: 0.9rem;">Monitor and manage your entire ambulance network</p>
+        </div>
+        <span class="admin-badge">🔒 Administrator</span>
     </div>
 
-    <div class="dashboard-card glass-card span-full">
-        <h3>All System Records</h3>
-        <p>In a full web application, this section would feature paginated DataTables spanning across Users, Providers, Hospitals, and Bookings logs for detailed administrative overview.</p>
-        <button class="btn-primary" onclick="alert('Data exported to CSV successfully!')">Export System Log</button>
+    <!-- Tab Navigation -->
+    <div class="admin-tabs">
+        <button class="admin-tab active" onclick="switchTab('overview', this)">
+            📊 Overview
+        </button>
+        <button class="admin-tab" onclick="switchTab('users', this)">
+            👥 Users <span class="tab-count">{{ users|length }}</span>
+        </button>
+        <button class="admin-tab" onclick="switchTab('providers', this)">
+            🚑 Providers <span class="tab-count">{{ providers|length }}</span>
+        </button>
+        <button class="admin-tab" onclick="switchTab('hospitals', this)">
+            🏥 Hospitals <span class="tab-count">{{ hospitals|length }}</span>
+        </button>
+        <button class="admin-tab" onclick="switchTab('bookings', this)">
+            📋 Bookings <span class="tab-count">{{ bookings|length }}</span>
+        </button>
+        <button class="admin-tab" onclick="switchTab('doctors', this)">
+            🩺 Doctors <span class="tab-count">{{ doctors|length }}</span>
+        </button>
+        <button class="admin-tab" onclick="switchTab('map', this)">
+            🗺️ Live Map
+        </button>
+    </div>
+
+    <!-- ==================== OVERVIEW TAB ==================== -->
+    <div id="tab-overview" class="tab-content active">
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card blue glass-card">
+                <span class="stat-icon">👥</span>
+                <div class="stat-number" data-count="{{ users|length }}">0</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+            <div class="stat-card green glass-card">
+                <span class="stat-icon">🚑</span>
+                <div class="stat-number" data-count="{{ providers|length }}">0</div>
+                <div class="stat-label">Ambulance Providers</div>
+            </div>
+            <div class="stat-card purple glass-card">
+                <span class="stat-icon">🏥</span>
+                <div class="stat-number" data-count="{{ hospitals|length }}">0</div>
+                <div class="stat-label">Hospitals</div>
+            </div>
+            <div class="stat-card cyan glass-card">
+                <span class="stat-icon">🩺</span>
+                <div class="stat-number" data-count="{{ doctors|length }}">0</div>
+                <div class="stat-label">Doctors</div>
+            </div>
+            <div class="stat-card amber glass-card">
+                <span class="stat-icon">📋</span>
+                <div class="stat-number" data-count="{{ bookings|length }}">0</div>
+                <div class="stat-label">Total Bookings</div>
+            </div>
+            <div class="stat-card red glass-card">
+                <span class="stat-icon">💰</span>
+                <div class="stat-number" data-count="{{ providers|sum(attribute='wallet')|int }}">0</div>
+                <div class="stat-label">Total Revenue (₹)</div>
+            </div>
+        </div>
+
+        <!-- Status Breakdown -->
+        <div class="status-breakdown">
+            <div class="status-card pending-card glass-card">
+                <div class="status-dot"></div>
+                <div>
+                    <strong style="color: #fcd34d; font-size: 1.4rem;">{{ bookings|selectattr('status','equalto','Pending')|list|length }}</strong>
+                    <div style="color: var(--text-muted); font-size: 0.85rem;">Pending</div>
+                </div>
+            </div>
+            <div class="status-card accepted-card glass-card">
+                <div class="status-dot"></div>
+                <div>
+                    <strong style="color: #93c5fd; font-size: 1.4rem;">{{ bookings|selectattr('status','equalto','Accepted')|list|length }}</strong>
+                    <div style="color: var(--text-muted); font-size: 0.85rem;">Accepted</div>
+                </div>
+            </div>
+            <div class="status-card completed-card glass-card">
+                <div class="status-dot"></div>
+                <div>
+                    <strong style="color: #6ee7b7; font-size: 1.4rem;">{{ bookings|selectattr('status','equalto','Completed')|list|length }}</strong>
+                    <div style="color: var(--text-muted); font-size: 0.85rem;">Completed</div>
+                </div>
+            </div>
+            <div class="status-card rejected-card glass-card">
+                <div class="status-dot"></div>
+                <div>
+                    <strong style="color: #fca5a5; font-size: 1.4rem;">{{ bookings|selectattr('status','equalto','Rejected')|list|length }}</strong>
+                    <div style="color: var(--text-muted); font-size: 0.85rem;">Rejected</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="recent-grid">
+            <div class="recent-card glass-card">
+                <h4>🕐 Recent Bookings</h4>
+                {% for b in bookings|reverse %}
+                {% if loop.index <= 6 %}
+                <div class="recent-item" style="animation-delay: {{ loop.index * 0.08 }}s;">
+                    <div>
+                        <strong>{{ b.tracking_id }}</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">{{ b.booked_by_name }} → {{ b.provider_name }}</div>
+                    </div>
+                    <span class="status {{ b.status|lower }}">{{ b.status }}</span>
+                </div>
+                {% endif %}
+                {% endfor %}
+                {% if bookings|length == 0 %}
+                <div class="empty-state"><div class="empty-icon">📋</div><p>No bookings yet</p></div>
+                {% endif %}
+            </div>
+
+            <div class="recent-card glass-card">
+                <h4>🚑 Active Providers</h4>
+                {% for p in providers %}
+                {% if loop.index <= 6 %}
+                <div class="recent-item" style="animation-delay: {{ loop.index * 0.08 }}s;">
+                    <div>
+                        <strong>{{ p.name }}</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">{{ p.service_type }} · {{ p.ambulance_number }}</div>
+                    </div>
+                    <span style="color: var(--success); font-size: 0.85rem;">₹{{ "%.0f"|format(p.wallet) }}</span>
+                </div>
+                {% endif %}
+                {% endfor %}
+                {% if providers|length == 0 %}
+                <div class="empty-state"><div class="empty-icon">🚑</div><p>No providers registered</p></div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== USERS TAB ==================== -->
+    <div id="tab-users" class="tab-content">
+        <div class="section-title">
+            <h3>👥 Registered Users</h3>
+            <span class="record-count">{{ users|length }} records</span>
+        </div>
+        <div class="table-toolbar">
+            <div class="search-box">
+                <span>🔍</span>
+                <input type="text" placeholder="Search users..." onkeyup="filterTable(this, 'users-table')">
+            </div>
+        </div>
+        <div class="admin-table-wrap glass-card">
+            <table class="admin-table" id="users-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Wallet (₹)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr id="user-row-{{ u.id }}">
+                        <td>#{{ u.id }}</td>
+                        <td><strong>{{ u.username }}</strong></td>
+                        <td>₹{{ "%.2f"|format(u.wallet) }}</td>
+                        <td>
+                            <button class="action-btn delete" onclick="confirmDelete('user', {{ u.id }}, '{{ u.username }}')">🗑 Delete</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="empty-state">No users registered yet</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ==================== PROVIDERS TAB ==================== -->
+    <div id="tab-providers" class="tab-content">
+        <div class="section-title">
+            <h3>🚑 Ambulance Providers</h3>
+            <span class="record-count">{{ providers|length }} records</span>
+        </div>
+        <div class="table-toolbar">
+            <div class="search-box">
+                <span>🔍</span>
+                <input type="text" placeholder="Search providers..." onkeyup="filterTable(this, 'providers-table')">
+            </div>
+        </div>
+        <div class="admin-table-wrap glass-card">
+            <table class="admin-table" id="providers-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Username</th>
+                        <th>Ambulance No.</th>
+                        <th>Service</th>
+                        <th>Location</th>
+                        <th>Wallet (₹)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in providers %}
+                    <tr id="provider-row-{{ p.id }}">
+                        <td>#{{ p.id }}</td>
+                        <td><strong>{{ p.name }}</strong></td>
+                        <td>{{ p.username }}</td>
+                        <td><code style="background:rgba(59,130,246,0.15); padding:3px 8px; border-radius:6px; color:#93c5fd;">{{ p.ambulance_number }}</code></td>
+                        <td>
+                            <span class="status {{ 'completed' if p.service_type == 'Human' else 'pending' }}">
+                                {{ '🧑' if p.service_type == 'Human' else '🐾' }} {{ p.service_type }}
+                            </span>
+                        </td>
+                        <td style="max-width: 180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ p.current_location }}">
+                            📍 {{ p.current_location }}
+                        </td>
+                        <td>₹{{ "%.2f"|format(p.wallet) }}</td>
+                        <td style="white-space:nowrap;">
+                            <button class="action-btn view-map" onclick="focusOnMap({{ p.provider_lat or 'null' }}, {{ p.provider_lng or 'null' }}, '{{ p.current_location }}', '{{ p.name }}')">📍 Map</button>
+                            <button class="action-btn delete" onclick="confirmDelete('provider', {{ p.id }}, '{{ p.name }}')">🗑</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" class="empty-state">No providers registered yet</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ==================== HOSPITALS TAB ==================== -->
+    <div id="tab-hospitals" class="tab-content">
+        <div class="section-title">
+            <h3>🏥 Registered Hospitals</h3>
+            <span class="record-count">{{ hospitals|length }} records</span>
+        </div>
+        <div class="table-toolbar">
+            <div class="search-box">
+                <span>🔍</span>
+                <input type="text" placeholder="Search hospitals..." onkeyup="filterTable(this, 'hospitals-table')">
+            </div>
+        </div>
+        <div class="admin-table-wrap glass-card">
+            <table class="admin-table" id="hospitals-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Hospital Name</th>
+                        <th>Username</th>
+                        <th>Location</th>
+                        <th>Doctors</th>
+                        <th>Wallet (₹)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in hospitals %}
+                    <tr id="hospital-row-{{ h.id }}">
+                        <td>#{{ h.id }}</td>
+                        <td><strong>{{ h.name }}</strong></td>
+                        <td>{{ h.username }}</td>
+                        <td style="max-width: 180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ h.location }}">
+                            📍 {{ h.location }}
+                        </td>
+                        <td>
+                            <span style="background:rgba(139,92,246,0.15); padding:3px 10px; border-radius:8px; color:#c4b5fd; font-weight:600;">
+                                {{ h.doctors|length }} doctors
+                            </span>
+                        </td>
+                        <td>₹{{ "%.2f"|format(h.wallet) }}</td>
+                        <td style="white-space:nowrap;">
+                            <button class="action-btn view-map" onclick="focusOnMap(null, null, '{{ h.location }}', '{{ h.name }}')">📍 Map</button>
+                            <button class="action-btn delete" onclick="confirmDelete('hospital', {{ h.id }}, '{{ h.name }}')">🗑</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" class="empty-state">No hospitals registered yet</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ==================== BOOKINGS TAB ==================== -->
+    <div id="tab-bookings" class="tab-content">
+        <div class="section-title">
+            <h3>📋 All Bookings</h3>
+            <span class="record-count">{{ bookings|length }} records</span>
+        </div>
+        <div class="table-toolbar">
+            <div class="search-box">
+                <span>🔍</span>
+                <input type="text" placeholder="Search bookings..." onkeyup="filterTable(this, 'bookings-table')">
+            </div>
+        </div>
+        <div class="admin-table-wrap glass-card">
+            <table class="admin-table" id="bookings-table">
+                <thead>
+                    <tr>
+                        <th>Tracking ID</th>
+                        <th>Patient</th>
+                        <th>Mobile</th>
+                        <th>Provider</th>
+                        <th>Ambulance</th>
+                        <th>Type</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>Doctor</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in bookings|reverse %}
+                    <tr id="booking-row-{{ b.id }}">
+                        <td><strong style="color: #93c5fd;">{{ b.tracking_id }}</strong></td>
+                        <td>{{ b.booked_by_name }}</td>
+                        <td>{{ b.booked_by_mobile }}</td>
+                        <td>{{ b.provider_name }}</td>
+                        <td><code style="background:rgba(59,130,246,0.15); padding:3px 8px; border-radius:6px; color:#93c5fd;">{{ b.ambulance_number }}</code></td>
+                        <td>
+                            <span class="status {{ 'completed' if b.service_type == 'Human' else 'pending' }}">
+                                {{ '🧑' if b.service_type == 'Human' else '🐾' }} {{ b.service_type }}
+                            </span>
+                        </td>
+                        <td style="max-width: 150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ b.pickup_location }}">
+                            📍 {{ b.pickup_location }}
+                        </td>
+                        <td><span class="status {{ b.status|lower }}">{{ b.status }}</span></td>
+                        <td>{{ b.assigned_doctor or '—' }}</td>
+                        <td style="white-space:nowrap;">
+                            {% if b.pickup_lat and b.pickup_lng %}
+                            <button class="action-btn view-map" onclick="focusOnMap({{ b.pickup_lat }}, {{ b.pickup_lng }}, '{{ b.pickup_location }}', 'Booking {{ b.tracking_id }}')">📍</button>
+                            {% endif %}
+                            <button class="action-btn delete" onclick="confirmDelete('booking', {{ b.id }}, '{{ b.tracking_id }}')">🗑</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="10" class="empty-state">No bookings yet</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ==================== DOCTORS TAB ==================== -->
+    <div id="tab-doctors" class="tab-content">
+        <div class="section-title">
+            <h3>🩺 Registered Doctors</h3>
+            <span class="record-count">{{ doctors|length }} records</span>
+        </div>
+        <div class="table-toolbar">
+            <div class="search-box">
+                <span>🔍</span>
+                <input type="text" placeholder="Search doctors..." onkeyup="filterTable(this, 'doctors-table')">
+            </div>
+        </div>
+        <div class="admin-table-wrap glass-card">
+            <table class="admin-table" id="doctors-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Doctor Name</th>
+                        <th>Hospital</th>
+                        <th>Availability</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in doctors %}
+                    <tr>
+                        <td>#{{ d.id }}</td>
+                        <td><strong>{{ d.name }}</strong></td>
+                        <td>{{ d.hospital.name if d.hospital else 'N/A' }}</td>
+                        <td>
+                            {% if d.available %}
+                            <span class="status completed">✅ Available</span>
+                            {% else %}
+                            <span class="status rejected">❌ Busy</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="empty-state">No doctors registered yet</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ==================== MAP TAB ==================== -->
+    <div id="tab-map" class="tab-content">
+        <div class="section-title">
+            <h3>🗺️ Live Network Map</h3>
+            <span class="record-count">All locations</span>
+        </div>
+        <div class="map-controls">
+            <button class="map-filter-btn active" onclick="toggleMapLayer('all', this)">🌐 Show All</button>
+            <button class="map-filter-btn" onclick="toggleMapLayer('providers', this)">🚑 Providers</button>
+            <button class="map-filter-btn" onclick="toggleMapLayer('bookings', this)">📍 Bookings</button>
+            <button class="map-filter-btn" onclick="toggleMapLayer('hospitals', this)">🏥 Hospitals</button>
+        </div>
+        <div class="admin-map-container glass-card">
+            <div id="adminMap"></div>
+        </div>
+        <div class="map-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#3b82f6;"></div> Providers</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#ef4444;"></div> Bookings (Pickup)</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6;"></div> Hospitals</div>
+        </div>
     </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<div id="confirmOverlay" class="confirm-overlay">
+    <div class="confirm-box">
+        <h3>⚠️ Confirm Deletion</h3>
+        <p id="confirmText">Are you sure you want to delete this record?</p>
+        <div class="confirm-actions">
+            <button class="btn-secondary" onclick="closeConfirm()">Cancel</button>
+            <button class="btn-danger" id="confirmDeleteBtn" onclick="executeDelete()">🗑 Delete</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // ===== TAB SWITCHING =====
+    function switchTab(tabName, btn) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById('tab-' + tabName).classList.add('active');
+        btn.classList.add('active');
+
+        // Init map when map tab is opened
+        if (tabName === 'map') {
+            setTimeout(() => initAdminMap(), 200);
+        }
+    }
+
+    // ===== ANIMATED COUNTERS =====
+    function animateCounters() {
+        document.querySelectorAll('.stat-number[data-count]').forEach(el => {
+            const target = parseInt(el.dataset.count) || 0;
+            let current = 0;
+            const increment = Math.max(1, Math.ceil(target / 40));
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= target) {
+                    current = target;
+                    clearInterval(timer);
+                }
+                el.textContent = current;
+            }, 30);
+        });
+    }
+    animateCounters();
+
+    // ===== TABLE SEARCH/FILTER =====
+    function filterTable(input, tableId) {
+        const filter = input.value.toLowerCase();
+        const table = document.getElementById(tableId);
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(filter) ? '' : 'none';
+        });
+    }
+
+    // ===== DELETE FUNCTIONALITY =====
+    let deleteType = '', deleteId = 0;
+
+    function confirmDelete(type, id, name) {
+        deleteType = type;
+        deleteId = id;
+        document.getElementById('confirmText').textContent = `Are you sure you want to delete ${type} "${name}"? This action cannot be undone.`;
+        document.getElementById('confirmOverlay').classList.add('show');
+    }
+
+    function closeConfirm() {
+        document.getElementById('confirmOverlay').classList.remove('show');
+    }
+
+    function executeDelete() {
+        const btn = document.getElementById('confirmDeleteBtn');
+        btn.textContent = '⏳ Deleting...';
+        btn.disabled = true;
+
+        fetch(`/api/admin/delete_${deleteType}/${deleteId}`, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(res => {
+                closeConfirm();
+                btn.textContent = '🗑 Delete';
+                btn.disabled = false;
+
+                if (res.success) {
+                    const row = document.getElementById(`${deleteType}-row-${deleteId}`);
+                    if (row) {
+                        row.classList.add('deleting');
+                        setTimeout(() => row.remove(), 400);
+                    }
+                    showToast(`${deleteType.charAt(0).toUpperCase() + deleteType.slice(1)} deleted successfully`);
+                } else {
+                    alert('Error: ' + (res.error || 'Unknown error'));
+                }
+            })
+            .catch(() => {
+                closeConfirm();
+                btn.textContent = '🗑 Delete';
+                btn.disabled = false;
+                alert('Network error. Please try again.');
+            });
+    }
+
+    function showToast(msg) {
+        const toast = document.createElement('div');
+        toast.className = 'admin-toast';
+        toast.textContent = '✅ ' + msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    // ===== MAP =====
+    let adminMap = null;
+    let providerMarkers = [];
+    let bookingMarkers = [];
+    let hospitalMarkers = [];
+
+    const providerData = [
+        {% for p in providers %}
+        { name: "{{ p.name }}", lat: {{ p.provider_lat or 'null' }}, lng: {{ p.provider_lng or 'null' }}, location: "{{ p.current_location }}", type: "{{ p.service_type }}", ambulance: "{{ p.ambulance_number }}" },
+        {% endfor %}
+    ];
+
+    const bookingData = [
+        {% for b in bookings %}
+        { id: "{{ b.tracking_id }}", lat: {{ b.pickup_lat or 'null' }}, lng: {{ b.pickup_lng or 'null' }}, location: "{{ b.pickup_location }}", patient: "{{ b.booked_by_name }}", status: "{{ b.status }}" },
+        {% endfor %}
+    ];
+
+    const hospitalData = [
+        {% for h in hospitals %}
+        { name: "{{ h.name }}", location: "{{ h.location }}" },
+        {% endfor %}
+    ];
+
+    function initAdminMap() {
+        if (adminMap) {
+            adminMap.invalidateSize();
+            return;
+        }
+
+        adminMap = L.map('adminMap').setView([28.6139, 77.2090], 11);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(adminMap);
+
+        // Custom icons
+        const providerIcon = L.divIcon({
+            html: '<div style="background:#3b82f6; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3);">🚑</div>',
+            iconSize: [28, 28],
+            className: ''
+        });
+        const bookingIcon = L.divIcon({
+            html: '<div style="background:#ef4444; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3);">📍</div>',
+            iconSize: [28, 28],
+            className: ''
+        });
+        const hospitalIcon = L.divIcon({
+            html: '<div style="background:#8b5cf6; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3);">🏥</div>',
+            iconSize: [28, 28],
+            className: ''
+        });
+
+        // Add provider markers
+        providerData.forEach(p => {
+            if (p.lat && p.lng) {
+                const marker = L.marker([p.lat, p.lng], { icon: providerIcon })
+                    .bindPopup(`<b>🚑 ${p.name}</b><br>Type: ${p.type}<br>Ambulance: ${p.ambulance}<br>📍 ${p.location}`)
+                    .addTo(adminMap);
+                providerMarkers.push(marker);
+            }
+        });
+
+        // Add booking markers
+        bookingData.forEach(b => {
+            if (b.lat && b.lng) {
+                const marker = L.marker([b.lat, b.lng], { icon: bookingIcon })
+                    .bindPopup(`<b>📋 ${b.id}</b><br>Patient: ${b.patient}<br>Status: ${b.status}<br>📍 ${b.location}`)
+                    .addTo(adminMap);
+                bookingMarkers.push(marker);
+            }
+        });
+
+        // Fit bounds if markers exist
+        const allMarkers = [...providerMarkers, ...bookingMarkers, ...hospitalMarkers];
+        if (allMarkers.length > 0) {
+            const group = L.featureGroup(allMarkers);
+            adminMap.fitBounds(group.getBounds().pad(0.1));
+        }
+
+        setTimeout(() => adminMap.invalidateSize(), 300);
+    }
+
+    function toggleMapLayer(layer, btn) {
+        document.querySelectorAll('.map-filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        providerMarkers.forEach(m => adminMap.removeLayer(m));
+        bookingMarkers.forEach(m => adminMap.removeLayer(m));
+        hospitalMarkers.forEach(m => adminMap.removeLayer(m));
+
+        if (layer === 'all' || layer === 'providers') providerMarkers.forEach(m => m.addTo(adminMap));
+        if (layer === 'all' || layer === 'bookings') bookingMarkers.forEach(m => m.addTo(adminMap));
+        if (layer === 'all' || layer === 'hospitals') hospitalMarkers.forEach(m => m.addTo(adminMap));
+    }
+
+    function focusOnMap(lat, lng, location, name) {
+        switchTab('map', document.querySelectorAll('.admin-tab')[6]);
+        setTimeout(() => {
+            initAdminMap();
+            if (lat && lng) {
+                adminMap.setView([lat, lng], 15);
+                L.popup()
+                    .setLatLng([lat, lng])
+                    .setContent(`<b>${name}</b><br>📍 ${location}`)
+                    .openOn(adminMap);
+            } else {
+                // Geocode the location
+                fetch(`/api/geocode?location=${encodeURIComponent(location)}`)
+                    .then(r => r.json())
+                    .then(geo => {
+                        const lt = parseFloat(geo.lat);
+                        const ln = parseFloat(geo.lng);
+                        adminMap.setView([lt, ln], 15);
+                        L.popup()
+                            .setLatLng([lt, ln])
+                            .setContent(`<b>${name}</b><br>📍 ${location}`)
+                            .openOn(adminMap);
+                    });
+            }
+        }, 400);
+    }
+</script>
 {% endblock %}

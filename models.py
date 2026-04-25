@@ -7,12 +7,14 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
+    contact = db.Column(db.String(15), unique=True, nullable=True)
     wallet = db.Column(db.Float, default=0.0)
 
 class Provider(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
+    contact = db.Column(db.String(15), unique=True, nullable=True)
     name = db.Column(db.String(150), nullable=False)
     ambulance_number = db.Column(db.String(50), nullable=False)
     service_type = db.Column(db.String(50), nullable=False) # 'Human' or 'Animal'
@@ -25,6 +27,7 @@ class Hospital(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
+    contact = db.Column(db.String(15), unique=True, nullable=True)
     name = db.Column(db.String(150), nullable=False)
     location = db.Column(db.String(255), nullable=False)
     wallet = db.Column(db.Float, default=0.0)
@@ -51,6 +54,7 @@ class Booking(db.Model):
     status = db.Column(db.String(50), default="Pending") # Pending, Accepted, Rejected, Completed
     assigned_doctor = db.Column(db.String(150), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    paid = db.Column(db.Boolean, default=False)
 
 class Admin(db.Model):
     id = db.Column(db.Integer, primary_key=True)
