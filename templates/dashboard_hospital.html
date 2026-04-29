@@ -258,6 +258,29 @@
         </div>
     </div>
 
+    <!-- Hospital Location Map -->
+    <div class="glass-card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+        <h3 style="display:flex; align-items:center; gap:8px; margin-bottom:1rem;">
+            <i class="fas fa-map-marked-alt"></i> Hospital Location Map
+            <span id="mapLocBadge" style="font-size:0.75rem; padding:3px 10px; border-radius:10px; font-weight:600; background:rgba(251,191,36,0.12); color:#fbbf24; border:1px solid rgba(251,191,36,0.2);">📡 Detecting...</span>
+        </h3>
+        <div id="hospitalLiveMap" style="height: 400px; width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08); z-index: 10; overflow: hidden;"></div>
+        <div style="display:flex; gap:12px; margin-top:10px; flex-wrap:wrap; align-items:center;">
+            <div style="display:flex; align-items:center; gap:5px; font-size:0.78rem; color:var(--text-muted);">
+                <span style="width:12px; height:12px; border-radius:50%; background:#10b981; display:inline-block; border:2px solid white; box-shadow:0 0 6px rgba(16,185,129,0.5);"></span> Your Hospital
+            </div>
+            <div style="display:flex; align-items:center; gap:5px; font-size:0.78rem; color:var(--text-muted);">
+                <span style="width:12px; height:12px; border-radius:50%; background:#ef4444; display:inline-block; border:2px solid white; box-shadow:0 0 6px rgba(239,68,68,0.5);"></span> Incoming Patients
+            </div>
+            <div style="display:flex; align-items:center; gap:5px; font-size:0.78rem; color:var(--text-muted);">
+                <span style="width:12px; height:12px; border-radius:50%; background:#3b82f6; display:inline-block; border:2px solid white; box-shadow:0 0 6px rgba(59,130,246,0.5);"></span> Ambulance Alerts
+            </div>
+            <button class="map-btn" onclick="refreshHospitalMap()" style="margin-left:auto;">
+                <i class="fas fa-sync-alt"></i> Refresh Map
+            </button>
+        </div>
+    </div>
+
     <!-- Ambulance Alerts Section -->
     <div class="alert-section glass-card" style="padding: 1.5rem;">
         <h3 style="display:flex; align-items:center; gap:8px; margin-bottom:1rem;">
@@ -561,6 +584,9 @@
     }
 
     let hospitalMap = null, hospitalMarker = null;
+    let hospLiveMap = null;
+    let hospLiveLat = {{ hospital.hospital_lat or 'null' }};
+    let hospLiveLng = {{ hospital.hospital_lng or 'null' }};
 
     function viewLocation(locationStr) {
         document.getElementById('locText').innerHTML = `<strong>📍 Location:</strong> ${locationStr}`;
@@ -609,6 +635,8 @@
         if (!navigator.geolocation) {
             locStatus.textContent = '📍 Saved location';
             locStatus.style.color = 'var(--text-muted)';
+            // Use saved coordinates for the map
+            initHospitalLiveMap();
             return;
         }
 
@@ -616,6 +644,8 @@
             (pos) => {
                 const lat = pos.coords.latitude;
                 const lng = pos.coords.longitude;
+                hospLiveLat = lat;
+                hospLiveLng = lng;
                 locStatus.textContent = '✅ Live GPS';
                 locStatus.style.color = '#4ade80';
 
@@ -641,16 +671,196 @@
                             body: JSON.stringify({ lat: lat, lng: lng })
                         });
                     });
+
+                // Initialize the live map with GPS location
+                initHospitalLiveMap();
             },
             (err) => {
                 // GPS denied — keep existing stored location
                 locStatus.textContent = '📍 Saved location';
                 locStatus.style.color = 'var(--text-muted)';
+                // Use saved coordinates for the map
+                initHospitalLiveMap();
             },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
     }
     autoDetectHospitalLocation();
+
+    // ===== HOSPITAL LIVE MAP =====
+    function initHospitalLiveMap() {
+        const mapBadge = document.getElementById('mapLocBadge');
+
+        // If no coordinates available at all, show message
+        if (hospLiveLat === null || hospLiveLng === null) {
+            mapBadge.textContent = '❌ No location data';
+            mapBadge.style.background = 'rgba(239,68,68,0.12)';
+            mapBadge.style.color = '#f87171';
+            mapBadge.style.borderColor = 'rgba(239,68,68,0.2)';
+            document.getElementById('hospitalLiveMap').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);flex-direction:column;gap:10px;"><div style="font-size:3rem;">📍</div><p>GPS location not available. Please allow location access and refresh.</p></div>';
+            return;
+        }
+
+        mapBadge.textContent = '✅ Live';
+        mapBadge.style.background = 'rgba(16,185,129,0.12)';
+        mapBadge.style.color = '#4ade80';
+        mapBadge.style.borderColor = 'rgba(16,185,129,0.2)';
+
+        // Destroy old map
+        if (hospLiveMap) {
+            hospLiveMap.remove();
+            hospLiveMap = null;
+        }
+
+        hospLiveMap = L.map('hospitalLiveMap').setView([hospLiveLat, hospLiveLng], 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(hospLiveMap);
+
+        // Hospital marker — large, pulsing, prominent
+        const hospIcon = L.divIcon({
+            html: `<div style="position:relative;">
+                <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:60px; height:60px; border-radius:50%; background:rgba(16,185,129,0.15); border:2px solid rgba(16,185,129,0.3); animation:hospPulse 2s infinite;"></div>
+                <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#10b981,#059669); display:flex; align-items:center; justify-content:center; font-size:22px; border:3px solid white; box-shadow:0 4px 15px rgba(16,185,129,0.5); z-index:2;">🏥</div>
+            </div>`,
+            iconSize: [60, 60], iconAnchor: [30, 30], className: ''
+        });
+
+        const hospitalName = '{{ hospital.name or "Your Hospital" }}';
+        const hospitalLocation = '{{ hospital.location or "" }}';
+
+        L.marker([hospLiveLat, hospLiveLng], { icon: hospIcon, zIndexOffset: 1000 })
+            .addTo(hospLiveMap)
+            .bindPopup(`<div style="text-align:center;">
+                <b style="font-size:1.1rem;">🏥 ${hospitalName}</b><br>
+                <span style="color:#666;">📍 ${hospitalLocation || 'GPS: ' + hospLiveLat.toFixed(4) + ', ' + hospLiveLng.toFixed(4)}</span><br>
+                <span style="color:#10b981; font-weight:600;">✅ Your Hospital Location</span>
+            </div>`)
+            .openPopup();
+
+        // Add a subtle circle radius around the hospital (20km coverage)
+        L.circle([hospLiveLat, hospLiveLng], {
+            radius: 20000, // 20km in meters
+            color: '#10b981',
+            fillColor: '#10b981',
+            fillOpacity: 0.03,
+            weight: 1,
+            opacity: 0.2,
+            dashArray: '8, 8'
+        }).addTo(hospLiveMap);
+
+        // Add a smaller prominent inner circle (5km)
+        L.circle([hospLiveLat, hospLiveLng], {
+            radius: 5000, // 5km
+            color: '#10b981',
+            fillColor: '#10b981',
+            fillOpacity: 0.05,
+            weight: 1.5,
+            opacity: 0.3,
+            dashArray: '5, 5'
+        }).addTo(hospLiveMap);
+
+        // Add CSS animation for the hospital marker pulse
+        if (!document.getElementById('hospMapStyles')) {
+            const style = document.createElement('style');
+            style.id = 'hospMapStyles';
+            style.textContent = `
+                @keyframes hospPulse {
+                    0% { transform: translate(-50%,-50%) scale(1); opacity: 0.6; }
+                    50% { transform: translate(-50%,-50%) scale(1.4); opacity: 0.2; }
+                    100% { transform: translate(-50%,-50%) scale(1); opacity: 0.6; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        const bounds = L.latLngBounds([[hospLiveLat, hospLiveLng]]);
+
+        // Fetch and display incoming user notifications as markers
+        fetch('/api/hospital_incoming_notifications')
+            .then(r => r.json())
+            .then(data => {
+                const notifs = data.notifications || [];
+                notifs.forEach(n => {
+                    if (!n.user_lat || !n.user_lng) return;
+                    const statusColor = n.status === 'Accepted' ? '#10b981' : (n.status === 'Busy' ? '#64748b' : '#ef4444');
+                    const statusEmoji = n.status === 'Accepted' ? '✅' : (n.status === 'Busy' ? '⚫' : '🔴');
+                    const patientIcon = L.divIcon({
+                        html: `<div style="background:${statusColor}; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; border:2px solid white; box-shadow:0 3px 10px rgba(0,0,0,0.3); ${n.status === 'Pending' ? 'animation:hospPulse 2s infinite;' : ''}">👤</div>`,
+                        iconSize: [34, 34], iconAnchor: [17, 17], className: ''
+                    });
+
+                    L.marker([n.user_lat, n.user_lng], { icon: patientIcon })
+                        .addTo(hospLiveMap)
+                        .bindPopup(`<b>${statusEmoji} ${n.user_name}</b><br>
+                            <span style="color:#666;">⚠️ ${n.emergency_type}</span><br>
+                            📏 ${n.distance_km} km · ⏱ ETA ~${n.eta_minutes} min<br>
+                            ${n.user_contact ? '📞 ' + n.user_contact + '<br>' : ''}
+                            <span style="font-weight:600; color:${statusColor};">${n.status}</span>`);
+
+                    bounds.extend([n.user_lat, n.user_lng]);
+
+                    // Draw line from patient to hospital
+                    L.polyline([[n.user_lat, n.user_lng], [hospLiveLat, hospLiveLng]], {
+                        color: statusColor, weight: 2, opacity: 0.4,
+                        dashArray: '8, 8'
+                    }).addTo(hospLiveMap);
+                });
+
+                // Also add ambulance booking alert locations
+                return fetch('/api/hospital_alerts').then(r => r.json());
+            })
+            .then(data => {
+                const alerts = data.alerts || [];
+                alerts.forEach(a => {
+                    // For booking alerts, we don't have direct lat/lng but we have pickup_location
+                    // We'll skip non-GPS alerts (they would need geocoding which is async)
+                    // Instead, display distance info in the popup
+                    if (a.distance_km && a.distance_km <= 20) {
+                        // Approximate location using bearing from hospital
+                        // Just plot a marker at estimated position (rough, but visual)
+                        const angle = Math.random() * 2 * Math.PI; // random angle since we don't know exact bearing
+                        const distDeg = a.distance_km / 111; // rough km to degrees
+                        const estLat = hospLiveLat + distDeg * Math.cos(angle);
+                        const estLng = hospLiveLng + distDeg * Math.sin(angle) / Math.cos(hospLiveLat * Math.PI / 180);
+
+                        const alertStatusColor = a.status === 'Ready' ? '#10b981' : (a.status === 'Acknowledged' ? '#64748b' : '#3b82f6');
+                        const alertIcon = L.divIcon({
+                            html: `<div style="background:${alertStatusColor}; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; border:2px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3);">🚑</div>`,
+                            iconSize: [30, 30], iconAnchor: [15, 15], className: ''
+                        });
+
+                        L.marker([estLat, estLng], { icon: alertIcon })
+                            .addTo(hospLiveMap)
+                            .bindPopup(`<b>🚑 ${a.patient_name}</b><br>
+                                🆔 ${a.tracking_id}<br>
+                                📍 ${(a.pickup_location || '').substring(0, 60)}<br>
+                                📏 ${a.distance_km} km away<br>
+                                <span style="font-weight:600; color:${alertStatusColor};">${a.status}</span>`);
+
+                        bounds.extend([estLat, estLng]);
+
+                        L.polyline([[estLat, estLng], [hospLiveLat, hospLiveLng]], {
+                            color: alertStatusColor, weight: 1.5, opacity: 0.3,
+                            dashArray: '6, 8'
+                        }).addTo(hospLiveMap);
+                    }
+                });
+
+                // Fit bounds if we have extra markers
+                if (bounds.isValid()) {
+                    hospLiveMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+                }
+            })
+            .catch(() => {});
+
+        setTimeout(() => hospLiveMap.invalidateSize(), 300);
+    }
+
+    function refreshHospitalMap() {
+        initHospitalLiveMap();
+        showToast('Map refreshed!');
+    }
 
     // ===== HOSPITAL CONNECT: ALERT POLLING =====
     let lastAlertCount = {{ pending_alerts }};

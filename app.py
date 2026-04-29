@@ -801,6 +801,31 @@ def nearby_hospitals():
     
     return jsonify({"hospitals": hospitals, "veterinary": veterinary})
 
+@app.route('/api/all_hospitals', methods=['GET'])
+def all_hospitals():
+    """Return ALL registered hospitals with GPS coordinates for the always-visible map."""
+    results = []
+    all_h = Hospital.query.filter(
+        Hospital.hospital_lat.isnot(None),
+        Hospital.hospital_lng.isnot(None)
+    ).all()
+    
+    for h in all_h:
+        doctor_count = Doctor.query.filter_by(hospital_id=h.id).count()
+        available_doctors = Doctor.query.filter_by(hospital_id=h.id, available=True).count()
+        results.append({
+            "id": h.id,
+            "name": h.name,
+            "location": h.location,
+            "lat": h.hospital_lat,
+            "lng": h.hospital_lng,
+            "contact": h.contact,
+            "doctors": doctor_count,
+            "available_doctors": available_doctors
+        })
+    
+    return jsonify({"hospitals": results})
+
 # Auto-initialize database on startup
 with app.app_context():
     db.create_all()
