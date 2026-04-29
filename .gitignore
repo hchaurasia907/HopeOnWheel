@@ -10,10 +10,12 @@ __pycache__/
 
 # Environments
 .env
+.env.production
 .venv
 env/
 venv/
 ENV/
+node_modules/
 
 # OS files
 .DS_Store

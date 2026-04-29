@@ -1,0 +1,32 @@
+services:
+  # Backend API Service
+  - type: web
+    name: hopeonwheel-api
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false  # You will enter your MongoDB Atlas URL in the Render Dashboard
+      - key: JWT_SECRET
+        generateValue: true # Render will auto-generate a secure secret
+      - key: CORS_ORIGIN
+        value: https://hopeonwheel.onrender.com
+
+  # Frontend Static Site
+  - type: web
+    name: hopeonwheel-frontend
+    env: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://hopeonwheel-api.onrender.com/api
