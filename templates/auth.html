@@ -231,7 +231,7 @@
                 <div class="extra-fields" id="hospitalFields" style="display:none;">
                     <div class="input-group">
                         <label><i class="fas fa-hospital"></i> Hospital Name <span style="color:#f87171;">*</span></label>
-                        <input type="text" name="name" class="h-field" placeholder="Hospital name (auto-capitalized)" required>
+                        <input type="text" name="name" class="h-field" placeholder="Hospital name (auto-capitalized)">
                     </div>
                     <div class="input-group">
                         <label><i class="fas fa-map-marker-alt"></i> Location <span id="hospGpsStatus" style="font-size:0.75rem; margin-left:8px; color:var(--text-muted);">—</span></label>
@@ -317,10 +317,11 @@
             registerToggleBtn.style.display = 'inline-block';
         }
 
-        // Hide all extra fields
+        // Hide all extra fields and DISABLE their inputs so they don't submit
         document.getElementById('providerFields').style.display = 'none';
         document.getElementById('hospitalFields').style.display = 'none';
-        document.querySelectorAll('.p-field, .h-field').forEach(el => el.removeAttribute('required'));
+        document.querySelectorAll('.p-field').forEach(el => { el.removeAttribute('required'); el.disabled = true; });
+        document.querySelectorAll('.h-field').forEach(el => { el.removeAttribute('required'); el.disabled = true; });
 
         if (action === 'register') {
             // Registration mode
@@ -334,10 +335,10 @@
 
             if (role === 'provider') {
                 document.getElementById('providerFields').style.display = 'block';
-                document.querySelectorAll('.p-field').forEach(el => el.setAttribute('required', 'true'));
+                document.querySelectorAll('.p-field').forEach(el => { el.setAttribute('required', 'true'); el.disabled = false; });
             } else if (role === 'hospital') {
                 document.getElementById('hospitalFields').style.display = 'block';
-                document.querySelectorAll('.h-field').forEach(el => el.setAttribute('required', 'true'));
+                document.querySelectorAll('.h-field').forEach(el => { el.setAttribute('required', 'true'); el.disabled = false; });
                 // Auto-detect hospital GPS when registration fields appear
                 detectHospitalGps();
             }
