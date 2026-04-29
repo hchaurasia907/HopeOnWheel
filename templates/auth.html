@@ -230,12 +230,17 @@
                 <!-- Extra fields for Hospital Registration -->
                 <div class="extra-fields" id="hospitalFields" style="display:none;">
                     <div class="input-group">
-                        <label><i class="fas fa-hospital"></i> Hospital Name</label>
-                        <input type="text" name="name" class="h-field" placeholder="Hospital name (auto-capitalized)">
+                        <label><i class="fas fa-hospital"></i> Hospital Name <span style="color:#f87171;">*</span></label>
+                        <input type="text" name="name" class="h-field" placeholder="Hospital name (auto-capitalized)" required>
                     </div>
                     <div class="input-group">
-                        <label><i class="fas fa-map-marker-alt"></i> Location</label>
-                        <input type="text" name="location" class="h-field" placeholder="e.g. Sector 15, Noida">
+                        <label><i class="fas fa-map-marker-alt"></i> Location <span id="hospGpsStatus" style="font-size:0.75rem; margin-left:8px; color:var(--text-muted);">—</span></label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" name="location" class="h-field" id="hospLocationInput" placeholder="Detecting via GPS..." readonly style="cursor:default; opacity:0.85;">
+                            <button type="button" class="btn-secondary small" id="hospGpsRetryBtn" onclick="detectHospitalGps()" style="display:none;">🔄</button>
+                        </div>
+                        <input type="hidden" name="hospital_lat" id="hospLatInput">
+                        <input type="hidden" name="hospital_lng" id="hospLngInput">
                     </div>
                 </div>
 
@@ -333,6 +338,8 @@
             } else if (role === 'hospital') {
                 document.getElementById('hospitalFields').style.display = 'block';
                 document.querySelectorAll('.h-field').forEach(el => el.setAttribute('required', 'true'));
+                // Auto-detect hospital GPS when registration fields appear
+                detectHospitalGps();
             }
         } else {
             // Login mode
@@ -373,6 +380,68 @@
     });
 
     updateForm();
+
+    // ===== HOSPITAL GPS AUTO-DETECT =====
+    function detectHospitalGps() {
+        const locInput = document.getElementById('hospLocationInput');
+        const gpsStatus = document.getElementById('hospGpsStatus');
+        const retryBtn = document.getElementById('hospGpsRetryBtn');
+        const latInput = document.getElementById('hospLatInput');
+        const lngInput = document.getElementById('hospLngInput');
+
+        if (!locInput) return; // guard if elements not in DOM
+
+        locInput.value = '';
+        locInput.placeholder = 'Detecting via GPS...';
+        locInput.readOnly = true;
+        locInput.style.opacity = '0.85';
+        gpsStatus.textContent = '📡 Detecting...';
+        gpsStatus.style.color = '#fbbf24';
+        retryBtn.style.display = 'none';
+
+        if (!navigator.geolocation) {
+            gpsStatus.textContent = '❌ Not supported';
+            gpsStatus.style.color = '#f87171';
+            locInput.readOnly = false;
+            locInput.style.opacity = '1';
+            locInput.placeholder = 'Enter hospital location manually';
+            retryBtn.style.display = 'inline-block';
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                latInput.value = lat;
+                lngInput.value = lng;
+                gpsStatus.textContent = '✅ Detected';
+                gpsStatus.style.color = '#4ade80';
+                retryBtn.style.display = 'inline-block';
+
+                fetch(`/api/reverse_geocode?lat=${lat}&lng=${lng}`)
+                    .then(r => r.json())
+                    .then(res => {
+                        locInput.value = res.formatted_address || `GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                        locInput.style.opacity = '1';
+                    })
+                    .catch(() => {
+                        locInput.value = `GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                        locInput.style.opacity = '1';
+                    });
+            },
+            (err) => {
+                gpsStatus.textContent = '⚠️ Manual';
+                gpsStatus.style.color = '#f87171';
+                locInput.readOnly = false;
+                locInput.style.opacity = '1';
+                locInput.placeholder = 'Enter hospital location manually';
+                retryBtn.style.display = 'inline-block';
+                retryBtn.textContent = '🔄 Retry';
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    }
 
     // ===== FORGOT PASSWORD =====
     function openForgot() {

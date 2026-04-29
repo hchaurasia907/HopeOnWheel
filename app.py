@@ -1,5 +1,8 @@
+from http.client import UPGRADE_REQUIRED
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
-from models import db, User, Provider, Hospital, Doctor, Booking, Admin
+from models import db, User, Provider, Hospital, Doctor, Booking, HospitalAlert, HospitalNotification, Admin
+import math
+from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 import urllib.parse
 import urllib.request
@@ -52,6 +55,14 @@ def get_current_user():
     elif user_type == 'admin':
         return Admin.query.get(user_id)
     return None
+
+def haversine_distance(lat1, lng1, lat2, lng2):
+    """Calculate distance in km between two GPS coordinates using Haversine formula."""
+    R = 6371
+    dLat = math.radians(lat2 - lat1)
+    dLng = math.radians(lng2 - lng1)
+    a = math.sin(dLat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dLng/2)**2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 @app.route('/')
 def index():
@@ -114,6 +125,10 @@ def auth():
                     name = request.form.get('name', '').strip()
                     location = request.form.get('location', '').strip()
                     
+                    if not name:
+                        flash('Hospital name is required!', 'error')
+                        return render_template('auth.html')
+                    
                     # Capitalize name properly
                     name = name.title() if name else name
                     
@@ -122,7 +137,9 @@ def auth():
                     elif Hospital.query.filter_by(contact=contact).first():
                         flash('This contact number is already registered!', 'error')
                     else:
-                        new_hospital = Hospital(username=username, password=generate_password_hash(password), contact=contact, name=name, location=location)
+                        hospital_lat = request.form.get('hospital_lat', type=float)
+                        hospital_lng = request.form.get('hospital_lng', type=float)
+                        new_hospital = Hospital(username=username, password=generate_password_hash(password), contact=contact, name=name, location=location, hospital_lat=hospital_lat, hospital_lng=hospital_lng)
                         db.session.add(new_hospital)
                         db.session.commit()
                         flash('Hospital registered successfully! Please login.', 'success')
@@ -206,7 +223,12 @@ def hospital_dashboard():
     if session.get('user_type') != 'hospital': return redirect(url_for('auth'))
     doctors = Doctor.query.filter_by(hospital_id=hospital.id).all()
     bookings = Booking.query.filter_by(status='Accepted').all()
-    return render_template('dashboard_hospital.html', hospital=hospital, doctors=doctors, bookings=bookings)
+    alerts = HospitalAlert.query.filter_by(hospital_id=hospital.id).order_by(HospitalAlert.created_at.desc()).limit(50).all()
+    pending_alerts = HospitalAlert.query.filter_by(hospital_id=hospital.id, status='Incoming').count()
+    # Direct user notifications
+    direct_notifs = HospitalNotification.query.filter_by(hospital_id=hospital.id).order_by(HospitalNotification.created_at.desc()).limit(30).all()
+    pending_notifs = HospitalNotification.query.filter_by(hospital_id=hospital.id, status='Pending').count()
+    return render_template('dashboard_hospital.html', hospital=hospital, doctors=doctors, bookings=bookings, alerts=alerts, pending_alerts=pending_alerts, direct_notifs=direct_notifs, pending_notifs=pending_notifs)
 
 @app.route('/admin_dashboard')
 def admin_dashboard():
@@ -282,7 +304,36 @@ def book_ambulance():
     db.session.add(booking)
     db.session.commit()
     
-    return jsonify({"success": True, "tracking_id": tracking_id})
+    # Hospital Connect: Notify nearby hospitals (within 20km)
+    notified_count = 0
+    pickup_lat = data.get('pickup_lat')
+    pickup_lng = data.get('pickup_lng')
+    if pickup_lat and pickup_lng:
+        try:
+            p_lat = float(pickup_lat)
+            p_lng = float(pickup_lng)
+            all_hospitals = Hospital.query.filter(
+                Hospital.hospital_lat.isnot(None),
+                Hospital.hospital_lng.isnot(None)
+            ).all()
+            for h in all_hospitals:
+                dist = haversine_distance(p_lat, p_lng, h.hospital_lat, h.hospital_lng)
+                if dist <= 20:
+                    alert = HospitalAlert(
+                        hospital_id=h.id,
+                        booking_id=booking.id,
+                        tracking_id=tracking_id,
+                        patient_name=data['name'],
+                        pickup_location=data['pickup_location'],
+                        distance_km=round(dist, 1)
+                    )
+                    db.session.add(alert)
+                    notified_count += 1
+            db.session.commit()
+        except Exception as e:
+            print(f"Hospital alert error: {e}")
+    
+    return jsonify({"success": True, "tracking_id": tracking_id, "hospitals_notified": notified_count})
 
 @app.route('/api/add_wallet', methods=['POST'])
 def add_wallet():
@@ -452,6 +503,255 @@ def update_provider_gps():
         return jsonify({"success": True})
     return jsonify({"error": "Missing GPS coordinates"}), 400
 
+@app.route('/api/update_hospital_gps', methods=['POST'])
+def update_hospital_gps():
+    hospital = get_current_user()
+    if not hospital or session.get('user_type') != 'hospital': return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    if 'lat' in data and 'lng' in data:
+        hospital.hospital_lat = data['lat']
+        hospital.hospital_lng = data['lng']
+        hospital.location = data.get('address', f"GPS: {data['lat']}, {data['lng']}")
+        db.session.commit()
+        return jsonify({"success": True})
+    return jsonify({"error": "Missing GPS coordinates"}), 400
+
+@app.route('/api/update_hospital_name', methods=['POST'])
+def update_hospital_name():
+    hospital = get_current_user()
+    if not hospital or session.get('user_type') != 'hospital':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    name = data.get('name', '').strip()
+    if not name:
+        return jsonify({"error": "Hospital name is required"}), 400
+    
+    # Title case the name
+    hospital.name = name.title()
+    db.session.commit()
+    return jsonify({"success": True, "name": hospital.name})
+
+@app.route('/api/registered_nearby_hospitals', methods=['GET'])
+def registered_nearby_hospitals():
+    lat = request.args.get('lat', type=float)
+    lng = request.args.get('lng', type=float)
+    if lat is None or lng is None:
+        return jsonify({"error": "Missing coordinates"}), 400
+    
+    results = []
+    all_hospitals = Hospital.query.filter(
+        Hospital.hospital_lat.isnot(None),
+        Hospital.hospital_lng.isnot(None)
+    ).all()
+    
+    for h in all_hospitals:
+        dist = haversine_distance(lat, lng, h.hospital_lat, h.hospital_lng)
+        if dist <= 20:
+            doctor_count = Doctor.query.filter_by(hospital_id=h.id).count()
+            available_doctors = Doctor.query.filter_by(hospital_id=h.id, available=True).count()
+            results.append({
+                "id": h.id,
+                "name": h.name,
+                "location": h.location,
+                "lat": h.hospital_lat,
+                "lng": h.hospital_lng,
+                "distance_km": round(dist, 1),
+                "contact": h.contact,
+                "doctors": doctor_count,
+                "available_doctors": available_doctors,
+                "registered": True
+            })
+    
+    results.sort(key=lambda x: x['distance_km'])
+    return jsonify({"hospitals": results})
+
+@app.route('/api/hospital_alerts', methods=['GET'])
+def get_hospital_alerts():
+    hospital = get_current_user()
+    if not hospital or session.get('user_type') != 'hospital':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    alerts = HospitalAlert.query.filter_by(hospital_id=hospital.id).order_by(HospitalAlert.created_at.desc()).limit(30).all()
+    result = []
+    for a in alerts:
+        booking = Booking.query.get(a.booking_id)
+        result.append({
+            "id": a.id,
+            "tracking_id": a.tracking_id,
+            "patient_name": a.patient_name,
+            "pickup_location": a.pickup_location,
+            "distance_km": a.distance_km,
+            "status": a.status,
+            "created_at": a.created_at.strftime("%d %b %Y, %I:%M %p") if a.created_at else "",
+            "booking_status": booking.status if booking else "Unknown",
+            "service_type": booking.service_type if booking else "",
+            "ambulance": booking.ambulance_number if booking else ""
+        })
+    
+    pending = sum(1 for a in alerts if a.status == 'Incoming')
+    return jsonify({"alerts": result, "pending_count": pending})
+
+@app.route('/api/hospital_alert_respond', methods=['POST'])
+def hospital_alert_respond():
+    hospital = get_current_user()
+    if not hospital or session.get('user_type') != 'hospital':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    alert_id = data.get('alert_id')
+    new_status = data.get('status')  # 'Ready' or 'Acknowledged'
+    
+    if new_status not in ('Ready', 'Acknowledged'):
+        return jsonify({"error": "Invalid status"}), 400
+    
+    alert = HospitalAlert.query.filter_by(id=alert_id, hospital_id=hospital.id).first()
+    if not alert:
+        return jsonify({"error": "Alert not found"}), 404
+    
+    alert.status = new_status
+    db.session.commit()
+    return jsonify({"success": True, "new_status": new_status})
+
+@app.route('/api/notify_hospital', methods=['POST'])
+def notify_hospital():
+    try:
+        user = get_current_user()
+        if not user or session.get('user_type') != 'user':
+            return jsonify({"error": "Please login as a user"}), 401
+        
+        data = request.json
+        if not data:
+            return jsonify({"error": "No data received. Please try again."}), 400
+        
+        hospital_id = data.get('hospital_id')
+        user_lat = data.get('lat')
+        user_lng = data.get('lng')
+        emergency_type = data.get('emergency_type', 'General')
+        location_address = data.get('location_address', '')
+        
+        if not hospital_id:
+            return jsonify({"error": "No hospital selected"}), 400
+        if user_lat is None or user_lng is None:
+            return jsonify({"error": "Your GPS location was not detected. Please allow location access and try again."}), 400
+        
+        hospital = Hospital.query.get(hospital_id)
+        if not hospital:
+            return jsonify({"error": "Hospital not found in our system"}), 404
+        
+        if hospital.hospital_lat is None or hospital.hospital_lng is None:
+            return jsonify({"error": "This hospital has not set up its GPS location yet. Please try another hospital."}), 400
+        
+        # Check for recent duplicate notification (within 5 minutes)
+        recent = HospitalNotification.query.filter_by(
+            user_id=user.id, hospital_id=hospital_id, status='Pending'
+        ).filter(HospitalNotification.created_at > datetime.utcnow() - timedelta(minutes=5)).first()
+        if recent:
+            return jsonify({"error": "You already notified this hospital. Please wait for their response."}), 400
+        
+        # Calculate distance and ETA
+        dist = haversine_distance(float(user_lat), float(user_lng), float(hospital.hospital_lat), float(hospital.hospital_lng))
+        eta = max(1, round(dist / 0.67))  # ~40 km/h average city speed
+        
+        notif = HospitalNotification(
+            hospital_id=hospital_id,
+            user_id=user.id,
+            user_name=user.username,
+            user_contact=user.contact or '',
+            user_lat=float(user_lat),
+            user_lng=float(user_lng),
+            user_location_address=location_address or f"GPS: {float(user_lat):.4f}, {float(user_lng):.4f}",
+            emergency_type=emergency_type,
+            distance_km=round(dist, 1),
+            eta_minutes=eta
+        )
+        db.session.add(notif)
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "notification_id": notif.id,
+            "hospital_name": hospital.name,
+            "distance_km": round(dist, 1),
+            "eta_minutes": eta
+        })
+    except Exception as e:
+        db.session.rollback()
+        print(f"Notify hospital error: {e}")
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+@app.route('/api/user_notification_status', methods=['GET'])
+def user_notification_status():
+    user = get_current_user()
+    if not user or session.get('user_type') != 'user':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    notifs = HospitalNotification.query.filter_by(user_id=user.id).order_by(HospitalNotification.created_at.desc()).limit(10).all()
+    result = []
+    for n in notifs:
+        hospital = Hospital.query.get(n.hospital_id)
+        result.append({
+            "id": n.id,
+            "hospital_name": hospital.name if hospital else "Unknown",
+            "hospital_location": hospital.location if hospital else "",
+            "emergency_type": n.emergency_type,
+            "distance_km": n.distance_km,
+            "eta_minutes": n.eta_minutes,
+            "status": n.status,
+            "hospital_message": n.hospital_message,
+            "created_at": n.created_at.strftime("%d %b, %I:%M %p") if n.created_at else ""
+        })
+    return jsonify({"notifications": result})
+
+@app.route('/api/hospital_incoming_notifications', methods=['GET'])
+def hospital_incoming_notifications():
+    hospital = get_current_user()
+    if not hospital or session.get('user_type') != 'hospital':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    notifs = HospitalNotification.query.filter_by(hospital_id=hospital.id).order_by(HospitalNotification.created_at.desc()).limit(20).all()
+    result = []
+    for n in notifs:
+        result.append({
+            "id": n.id,
+            "user_name": n.user_name,
+            "user_contact": n.user_contact,
+            "user_lat": n.user_lat,
+            "user_lng": n.user_lng,
+            "user_location_address": n.user_location_address,
+            "emergency_type": n.emergency_type,
+            "distance_km": n.distance_km,
+            "eta_minutes": n.eta_minutes,
+            "status": n.status,
+            "created_at": n.created_at.strftime("%d %b %Y, %I:%M %p") if n.created_at else ""
+        })
+    pending = sum(1 for n in notifs if n.status == 'Pending')
+    return jsonify({"notifications": result, "pending_count": pending})
+
+@app.route('/api/hospital_notification_respond', methods=['POST'])
+def hospital_notification_respond():
+    hospital = get_current_user()
+    if not hospital or session.get('user_type') != 'hospital':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    notif_id = data.get('notification_id')
+    new_status = data.get('status')  # 'Accepted' or 'Busy'
+    message = data.get('message', '')
+    
+    if new_status not in ('Accepted', 'Busy'):
+        return jsonify({"error": "Invalid status. Use 'Accepted' or 'Busy'"}), 400
+    
+    notif = HospitalNotification.query.filter_by(id=notif_id, hospital_id=hospital.id).first()
+    if not notif:
+        return jsonify({"error": "Notification not found"}), 404
+    
+    notif.status = new_status
+    notif.hospital_message = message or ("Hospital is ready for your arrival" if new_status == 'Accepted' else "Hospital is currently busy")
+    db.session.commit()
+    return jsonify({"success": True, "new_status": new_status})
+
 @app.route('/api/nearby_hospitals', methods=['GET'])
 def nearby_hospitals():
     lat = request.args.get('lat')
@@ -468,7 +768,15 @@ def nearby_hospitals():
         with urllib.request.urlopen(h_req, timeout=10) as response:
             h_data = json.loads(response.read().decode())
             for item in h_data:
-                hospitals.append({"name": item.get("display_name", "").split(",")[0], "lat": item.get("lat"), "lng": item.get("lon")})
+                display = item.get("display_name", "")
+                name_parts = [p.strip() for p in display.split(",")]
+                short_name = ", ".join(name_parts[:3]) if len(name_parts) > 1 else display
+                hospitals.append({
+                    "name": short_name,
+                    "lat": item.get("lat"),
+                    "lng": item.get("lon"),
+                    "full_address": display
+                })
     except Exception as e:
         print(f"Hospital search error: {e}")
     
@@ -479,7 +787,15 @@ def nearby_hospitals():
         with urllib.request.urlopen(v_req, timeout=10) as response:
             v_data = json.loads(response.read().decode())
             for item in v_data:
-                veterinary.append({"name": item.get("display_name", "").split(",")[0], "lat": item.get("lat"), "lng": item.get("lon")})
+                display = item.get("display_name", "")
+                name_parts = [p.strip() for p in display.split(",")]
+                short_name = ", ".join(name_parts[:3]) if len(name_parts) > 1 else display
+                veterinary.append({
+                    "name": short_name,
+                    "lat": item.get("lat"),
+                    "lng": item.get("lon"),
+                    "full_address": display
+                })
     except Exception as e:
         print(f"Veterinary search error: {e}")
     
@@ -488,6 +804,17 @@ def nearby_hospitals():
 # Auto-initialize database on startup
 with app.app_context():
     db.create_all()
+    # Migrate: add hospital_lat/hospital_lng columns if missing
+    from sqlalchemy import inspect, text
+    inspector = inspect(db.engine)
+    existing_tables = inspector.get_table_names()
+    if 'hospital' in existing_tables:
+        hospital_columns = [col['name'] for col in inspector.get_columns('hospital')]
+        if 'hospital_lat' not in hospital_columns:
+            db.session.execute(text('ALTER TABLE hospital ADD COLUMN hospital_lat FLOAT'))
+        if 'hospital_lng' not in hospital_columns:
+            db.session.execute(text('ALTER TABLE hospital ADD COLUMN hospital_lng FLOAT'))
+    db.session.commit()
 
 if __name__ == '__main__':
     # Use environment port for Render compatibility

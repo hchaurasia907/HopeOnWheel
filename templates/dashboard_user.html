@@ -129,10 +129,226 @@
     .dash-toast.error { background: rgba(239,68,68,0.95); color: white; }
     @keyframes fadeOutToast { to { opacity: 0; transform: translateY(20px); } }
 
+    /* ===== NEARBY HOSPITALS STYLES ===== */
+    .nearby-modal .modal-content {
+        max-width: 900px; width: 95%; max-height: 90vh;
+        display: flex; flex-direction: column;
+    }
+    .nearby-header {
+        display: flex; justify-content: space-between; align-items: center;
+        flex-wrap: wrap; gap: 10px; margin-bottom: 1rem;
+    }
+    .nearby-header h3 { margin: 0; display: flex; align-items: center; gap: 8px; }
+    .nearby-gps-badge {
+        font-size: 0.8rem; padding: 4px 12px; border-radius: 20px;
+        font-weight: 600; display: inline-flex; align-items: center; gap: 5px;
+    }
+    .nearby-gps-badge.detecting { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+    .nearby-gps-badge.success { background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+    .nearby-gps-badge.error { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+
+    .nearby-controls {
+        display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    }
+    .view-toggle {
+        display: flex; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 3px;
+    }
+    .view-toggle-btn {
+        padding: 6px 14px; border: none; border-radius: 8px;
+        background: none; color: var(--text-muted); cursor: pointer;
+        font-family: var(--font); font-size: 0.8rem; font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .view-toggle-btn.active {
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white; box-shadow: 0 2px 8px rgba(59,130,246,0.3);
+    }
+    .refresh-gps-btn {
+        padding: 6px 14px; border-radius: 10px; border: 1px solid rgba(59,130,246,0.2);
+        background: rgba(59,130,246,0.1); color: #93c5fd; cursor: pointer;
+        font-family: var(--font); font-size: 0.8rem; font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .refresh-gps-btn:hover { background: rgba(59,130,246,0.25); transform: scale(1.05); }
+
+    .nearby-body { flex: 1; overflow: hidden; position: relative; }
+    .nearby-view { display: none; height: 100%; }
+    .nearby-view.active { display: block; }
+
+    #nearbyMap {
+        height: 400px; width: 100%; border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.08); z-index: 10;
+    }
+
+    .nearby-list {
+        max-height: 420px; overflow-y: auto; display: flex;
+        flex-direction: column; gap: 8px; padding-right: 4px;
+    }
+    .nearby-list::-webkit-scrollbar { width: 5px; }
+    .nearby-list::-webkit-scrollbar-track { background: transparent; }
+    .nearby-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+
+    .hosp-card {
+        display: flex; align-items: center; gap: 12px;
+        padding: 0.9rem 1.2rem; border-radius: 12px;
+        background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+        transition: all 0.3s ease; cursor: pointer;
+    }
+    .hosp-card:hover {
+        background: rgba(59,130,246,0.06); border-color: rgba(59,130,246,0.15);
+        transform: translateX(4px);
+    }
+    .hosp-card .hc-icon {
+        width: 42px; height: 42px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.3rem; flex-shrink: 0;
+    }
+    .hosp-card .hc-icon.hospital { background: rgba(59,130,246,0.15); }
+    .hosp-card .hc-icon.vet { background: rgba(168,85,247,0.15); }
+    .hosp-card .hc-info { flex: 1; min-width: 0; }
+    .hosp-card .hc-name {
+        font-weight: 600; font-size: 0.9rem; color: var(--text-main);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .hosp-card .hc-type { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+    .hosp-card .hc-dist {
+        flex-shrink: 0; padding: 4px 10px; border-radius: 8px;
+        font-size: 0.78rem; font-weight: 700;
+        background: rgba(16,185,129,0.12); color: #6ee7b7;
+        border: 1px solid rgba(16,185,129,0.2);
+    }
+
+    .nearby-empty {
+        text-align: center; padding: 3rem 1rem;
+        color: var(--text-muted);
+    }
+    .nearby-empty .ne-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+
+    .nearby-loading {
+        display: flex; flex-direction: column; align-items: center;
+        justify-content: center; padding: 3rem; gap: 1rem;
+    }
+    .nearby-loading .spinner {
+        width: 40px; height: 40px; border-radius: 50%;
+        border: 3px solid rgba(59,130,246,0.2);
+        border-top-color: #3b82f6;
+        animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .nearby-summary {
+        display: flex; gap: 1rem; margin-bottom: 0.8rem; flex-wrap: wrap;
+    }
+    .ns-chip {
+        padding: 4px 12px; border-radius: 8px;
+        font-size: 0.78rem; font-weight: 600;
+    }
+    .ns-chip.hosp { background: rgba(59,130,246,0.12); color: #93c5fd; border: 1px solid rgba(59,130,246,0.2); }
+    .ns-chip.vet { background: rgba(168,85,247,0.12); color: #c4b5fd; border: 1px solid rgba(168,85,247,0.2); }
+    .ns-chip.loc { background: rgba(16,185,129,0.12); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.2); }
+    .ns-chip.reg { background: rgba(16,185,129,0.12); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.2); }
+
+    /* Registered hospital cards */
+    .hosp-card.registered {
+        border-color: rgba(16,185,129,0.2);
+        background: rgba(16,185,129,0.04);
+    }
+    .hosp-card.registered:hover {
+        background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.3);
+    }
+    .hosp-card .hc-icon.registered { background: rgba(16,185,129,0.15); }
+    .hc-verified {
+        font-size: 0.7rem; font-weight: 700; padding: 2px 6px;
+        border-radius: 6px; background: rgba(16,185,129,0.15);
+        color: #4ade80; border: 1px solid rgba(16,185,129,0.3);
+        white-space: nowrap;
+    }
+    .hc-contact {
+        font-size: 0.72rem; color: var(--text-muted); margin-top: 1px;
+    }
+    .nearby-section-label {
+        font-size: 0.85rem; font-weight: 700; padding: 8px 0 6px;
+        display: flex; align-items: center; gap: 6px;
+        border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 6px;
+    }
+    .nearby-section-label .nsl-badge {
+        font-size: 0.7rem; padding: 2px 8px; border-radius: 8px;
+        font-weight: 600;
+    }
+
+    /* Notify button on registered cards */
+    .hc-notify-btn {
+        padding: 4px 10px; border-radius: 8px; border: none;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white; cursor: pointer; font-family: var(--font);
+        font-size: 0.72rem; font-weight: 700; white-space: nowrap;
+        transition: all 0.3s ease; margin-top: 4px;
+    }
+    .hc-notify-btn:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(245,158,11,0.4); }
+    .hc-notify-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .hc-notify-btn.sent { background: linear-gradient(135deg, #10b981, #059669); }
+
+    /* Notify modal */
+    .notify-modal .modal-content { max-width: 500px; }
+    .notify-form { display: flex; flex-direction: column; gap: 12px; }
+    .notify-form label { font-weight: 600; font-size: 0.85rem; color: var(--text-muted); }
+    .notify-form select, .notify-form input {
+        background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.1);
+        color: white; padding: 0.7rem 1rem; border-radius: 10px;
+        font-family: var(--font); font-size: 0.9rem; outline: none;
+    }
+    .notify-form select:focus, .notify-form input:focus {
+        border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.15);
+    }
+    .notify-hospital-info {
+        display: flex; align-items: center; gap: 10px; padding: 0.8rem;
+        border-radius: 10px; background: rgba(16,185,129,0.06);
+        border: 1px solid rgba(16,185,129,0.15);
+    }
+    .notify-send-btn {
+        padding: 0.8rem; border-radius: 12px; border: none;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white; font-weight: 700; cursor: pointer;
+        font-family: var(--font); font-size: 1rem;
+        transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(245,158,11,0.3);
+    }
+    .notify-send-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(245,158,11,0.5); }
+    .notify-send-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* Notification status tracker */
+    .notif-status-panel {
+        padding: 0.8rem; border-radius: 12px;
+        background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06);
+    }
+    .notif-status-header {
+        font-size: 0.85rem; font-weight: 700; margin-bottom: 8px;
+        display: flex; align-items: center; gap: 6px;
+    }
+    .notif-tracker {
+        padding: 0.6rem 0.8rem; border-radius: 10px; margin-bottom: 6px;
+        font-size: 0.8rem; display: flex; align-items: center; gap: 8px;
+        transition: all 0.3s ease;
+    }
+    .notif-tracker.pending {
+        background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.15); color: #fbbf24;
+    }
+    .notif-tracker.accepted {
+        background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.15); color: #4ade80;
+    }
+    .notif-tracker.busy {
+        background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.15); color: #f87171;
+    }
+    .notif-tracker .nt-name { font-weight: 600; flex: 1; }
+    .notif-tracker .nt-status { font-weight: 700; font-size: 0.75rem; padding: 2px 8px; border-radius: 6px; }
+
     @media (max-width: 768px) {
         .wallet-card { flex-direction: column; text-align: center; }
         .wallet-actions { flex-direction: column; width: 100%; }
         .wallet-input { width: 100%; }
+        .nearby-modal .modal-content { max-height: 95vh; }
+        #nearbyMap { height: 300px; }
+        .nearby-list { max-height: 350px; }
+        .nearby-header { flex-direction: column; align-items: flex-start; }
     }
 </style>
 
@@ -197,10 +413,10 @@
                     <input type="text" id="b_mobile" required>
                 </div>
                 <div class="input-group">
-                    <label>Pickup Location</label>
+                    <label>Pickup Location <span id="gpsStatus" style="font-size:0.75rem; margin-left:8px; color:#fbbf24;">📡 Detecting GPS...</span></label>
                     <div style="display: flex; gap: 10px;">
-                        <input type="text" id="b_location" required placeholder="Enter location or use GPS">
-                        <button type="button" class="btn-secondary small" onclick="autoDetectLocation()" title="Detect My Location">📍 Detect</button>
+                        <input type="text" id="b_location" required placeholder="Detecting your location..." readonly style="cursor:default; opacity:0.85;">
+                        <button type="button" class="btn-secondary small" id="gpsRetryBtn" onclick="autoDetectLocation()" title="Re-detect My Location" style="display:none;">🔄 Retry</button>
                     </div>
                     <input type="hidden" id="pickup_lat">
                     <input type="hidden" id="pickup_lng">
@@ -220,7 +436,7 @@
                 </div>
                 <button type="button" class="btn-primary span-full" onclick="submitBooking()">🚑 Book Now</button>
             </form>
-            <button class="btn-secondary span-full" style="margin-top: 15px; width:100%;" onclick="document.getElementById('nearbyModal').style.display='flex'">📍 Find Nearby Hospitals</button>
+            <button class="btn-secondary span-full" style="margin-top: 15px; width:100%;" onclick="openNearbyModal()">📍 Find Nearby Hospitals & Vets</button>
         </div>
 
         <!-- Booking History -->
@@ -265,18 +481,87 @@
 </div>
 
 <!-- Nearby Hospitals Modal -->
-<div id="nearbyModal" class="modal">
+<div id="nearbyModal" class="modal nearby-modal">
     <div class="modal-content glass-card">
-        <span class="close" onclick="document.getElementById('nearbyModal').style.display='none'">&times;</span>
-        <h3>🏥 Find Nearby Hospitals</h3>
-        <div class="grid-form">
-            <div class="input-group span-full">
-                <label>Your Current Location</label>
-                <input type="text" id="user_location_search" placeholder="e.g. Delhi, India">
+        <span class="close" onclick="closeNearbyModal()">&times;</span>
+
+        <!-- Header with GPS status -->
+        <div class="nearby-header">
+            <h3>🏥 Nearby Hospitals & Clinics</h3>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <span class="nearby-gps-badge detecting" id="nearbyGpsBadge">📡 Detecting GPS...</span>
+                <button class="refresh-gps-btn" onclick="nearbyDetectGps()" title="Re-detect location">🔄 Refresh</button>
             </div>
-            <button type="button" class="btn-primary span-full" onclick="searchNearby()">🔍 Search</button>
         </div>
-        <div id="nearbyResults" style="margin-top: 15px; max-height: 250px; overflow-y: auto;"></div>
+
+        <!-- Controls row -->
+        <div class="nearby-controls">
+            <div class="view-toggle">
+                <button class="view-toggle-btn active" id="btnMapView" onclick="switchNearbyView('map')">🗺️ Map</button>
+                <button class="view-toggle-btn" id="btnListView" onclick="switchNearbyView('list')">📋 List</button>
+            </div>
+            <div class="nearby-summary" id="nearbySummary"></div>
+        </div>
+
+        <!-- Body -->
+        <div class="nearby-body">
+            <!-- Map View -->
+            <div class="nearby-view active" id="nearbyMapView">
+                <div id="nearbyMap"></div>
+            </div>
+            <!-- List View -->
+            <div class="nearby-view" id="nearbyListView">
+                <div class="nearby-list" id="nearbyList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notify Hospital Modal -->
+<div id="notifyHospitalModal" class="modal notify-modal">
+    <div class="modal-content glass-card">
+        <span class="close" onclick="document.getElementById('notifyHospitalModal').style.display='none'">&times;</span>
+        <h3>🚨 Notify Hospital — We Are Coming</h3>
+        <div class="notify-form">
+            <div class="notify-hospital-info" id="notifyHospInfo">
+                <span style="font-size:1.5rem;">🏥</span>
+                <div>
+                    <div style="font-weight:700;" id="notifyHospName">Hospital Name</div>
+                    <div style="font-size:0.8rem; color:var(--text-muted);" id="notifyHospDist"></div>
+                </div>
+            </div>
+            <div>
+                <label>⚠️ Emergency Type</label>
+                <select id="notifyEmergencyType">
+                    <option value="General">General Emergency</option>
+                    <option value="Cardiac">Cardiac / Heart Attack</option>
+                    <option value="Accident">Road Accident</option>
+                    <option value="Breathing">Breathing / Respiratory</option>
+                    <option value="Pregnancy">Pregnancy / Maternity</option>
+                    <option value="Burns">Burns / Fire</option>
+                    <option value="Fracture">Fracture / Bone Injury</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <input type="hidden" id="notifyHospId">
+            <button class="notify-send-btn" id="notifySendBtn" onclick="sendNotifyHospital()">🚨 Send Alert — We Are Coming!</button>
+        </div>
+        <div id="notifySentConfirm" style="display:none; text-align:center; padding:1.5rem;">
+            <div style="font-size:2.5rem; margin-bottom:0.5rem;">✅</div>
+            <div style="font-weight:700; font-size:1.1rem; color:#4ade80;">Hospital Notified!</div>
+            <div id="notifyConfirmDetails" style="color:var(--text-muted); font-size:0.85rem; margin-top:8px;"></div>
+            <div id="notifyWaitingStatus" style="margin-top:12px; padding:8px; border-radius:10px; background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.15); color:#fbbf24; font-size:0.85rem; font-weight:600;">
+                ⏳ Waiting for hospital response...
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Status Panel (floating) -->
+<div id="notifStatusPanel" style="display:none; position:fixed; bottom:20px; left:20px; z-index:9999; max-width:350px; width:90%;">
+    <div class="notif-status-panel glass-card">
+        <div class="notif-status-header">🔔 Hospital Responses <span id="notifPanelCount" style="background:#f59e0b;color:white;padding:1px 6px;border-radius:8px;font-size:0.7rem;"></span></div>
+        <div id="notifStatusList"></div>
     </div>
 </div>
 
@@ -413,7 +698,9 @@
             body: JSON.stringify(data)
         }).then(r => r.json()).then(res => {
             if (res.success) {
-                showToast(`Booking successful! ID: ${res.tracking_id}`, 'success');
+                let msg = `Booking successful! ID: ${res.tracking_id}`;
+                if (res.hospitals_notified > 0) msg += ` • ${res.hospitals_notified} nearby hospital${res.hospitals_notified>1?'s':''} notified`;
+                showToast(msg, 'success');
                 setTimeout(() => location.reload(), 1500);
             } else {
                 showToast('Error: ' + res.error, 'error');
@@ -421,31 +708,73 @@
         });
     }
 
-    // ===== GPS =====
+    // ===== GPS AUTO-DETECT =====
     function autoDetectLocation() {
-        if (navigator.geolocation) {
-            const locInput = document.getElementById('b_location');
-            locInput.placeholder = "Acquiring GPS...";
-            navigator.geolocation.getCurrentPosition((pos) => {
+        const locInput = document.getElementById('b_location');
+        const gpsStatus = document.getElementById('gpsStatus');
+        const retryBtn = document.getElementById('gpsRetryBtn');
+
+        // Reset state
+        locInput.value = '';
+        locInput.placeholder = 'Detecting your location...';
+        locInput.readOnly = true;
+        locInput.style.opacity = '0.85';
+        gpsStatus.textContent = '📡 Detecting GPS...';
+        gpsStatus.style.color = '#fbbf24';
+        retryBtn.style.display = 'none';
+
+        if (!navigator.geolocation) {
+            gpsStatus.textContent = '❌ GPS not supported';
+            gpsStatus.style.color = '#f87171';
+            locInput.readOnly = false;
+            locInput.style.opacity = '1';
+            locInput.placeholder = 'Enter your location manually';
+            retryBtn.style.display = 'inline-block';
+            showToast("Your browser does not support geolocation.", 'error');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
                 const lat = pos.coords.latitude;
                 const lng = pos.coords.longitude;
                 document.getElementById('pickup_lat').value = lat;
                 document.getElementById('pickup_lng').value = lng;
+                gpsStatus.textContent = '✅ GPS Detected';
+                gpsStatus.style.color = '#4ade80';
+                retryBtn.style.display = 'inline-block';
+                retryBtn.textContent = '🔄 Refresh';
+
                 fetch(`/api/reverse_geocode?lat=${lat}&lng=${lng}`)
                     .then(r => r.json())
                     .then(res => {
-                        locInput.value = res.formatted_address || `Pos: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                        locInput.value = res.formatted_address || `GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                        locInput.style.opacity = '1';
+                    })
+                    .catch(() => {
+                        locInput.value = `GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                        locInput.style.opacity = '1';
                     });
-            }, (err) => {
+            },
+            (err) => {
                 let msg = "GPS Error. Please enter location manually.";
-                if (err.code === 1) msg = "Location denied. Please enable GPS in your settings.";
+                if (err.code === 1) msg = "Location permission denied. Please enter location manually.";
+                else if (err.code === 2) msg = "Location unavailable. Please enter manually.";
+                else if (err.code === 3) msg = "GPS timed out. Please enter manually.";
+
+                gpsStatus.textContent = '⚠️ Manual mode';
+                gpsStatus.style.color = '#f87171';
+                locInput.readOnly = false;
+                locInput.style.opacity = '1';
+                locInput.placeholder = 'Enter your pickup location manually';
+                retryBtn.style.display = 'inline-block';
+                retryBtn.textContent = '🔄 Retry GPS';
                 showToast(msg, 'error');
-                locInput.placeholder = "Enter location manually";
-            }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
-        } else {
-            showToast("Your browser does not support geolocation.", 'error');
-        }
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
     }
+    // Auto-detect on page load
     autoDetectLocation();
 
     // ===== TRACKING =====
@@ -551,29 +880,436 @@
         document.getElementById('trackingModal').style.display = 'none';
     }
 
-    // ===== NEARBY =====
-    function searchNearby() {
-        const loc = document.getElementById('user_location_search').value;
-        if(!loc) return;
-        const resDiv = document.getElementById('nearbyResults');
-        resDiv.innerHTML = '<p>Searching...</p>';
-        fetch(`/api/geocode?location=${encodeURIComponent(loc)}`)
-            .then(r => r.json())
-            .then(geo => {
-                fetch(`/api/nearby_hospitals?lat=${geo.lat}&lng=${geo.lng}`)
-                    .then(r => r.json())
-                    .then(data => {
-                        let html = '';
-                        if(data.hospitals && data.hospitals.length > 0) {
-                            html += `<h4>🏥 Hospitals</h4><ul>` + data.hospitals.slice(0, 5).map(h => `<li>${h.name || 'Unnamed Hospital'}</li>`).join('') + `</ul>`;
-                        }
-                        if(data.veterinary && data.veterinary.length > 0) {
-                            html += `<h4 style="margin-top:10px;">🐾 Veterinary Clinics</h4><ul>` + data.veterinary.slice(0, 5).map(v => `<li>${v.name || 'Unnamed Clinic'}</li>`).join('') + `</ul>`;
-                        }
-                        if(html === '') html = '<p>No facilities found nearby.</p>';
-                        resDiv.innerHTML = html;
-                    });
-            });
+    // ===== NEARBY HOSPITALS SYSTEM =====
+    let nearbyMap = null;
+    let nearbyUserLat = null, nearbyUserLng = null;
+    let nearbyData = { hospitals: [], veterinary: [] };
+    let registeredHospitalsData = []; // Store for notify modal
+
+    function openNearbyModal() {
+        document.getElementById('nearbyModal').style.display = 'flex';
+        nearbyDetectGps();
     }
+
+    function closeNearbyModal() {
+        document.getElementById('nearbyModal').style.display = 'none';
+    }
+
+    function switchNearbyView(view) {
+        document.getElementById('nearbyMapView').classList.toggle('active', view === 'map');
+        document.getElementById('nearbyListView').classList.toggle('active', view === 'list');
+        document.getElementById('btnMapView').classList.toggle('active', view === 'map');
+        document.getElementById('btnListView').classList.toggle('active', view === 'list');
+        if (view === 'map' && nearbyMap) {
+            setTimeout(() => nearbyMap.invalidateSize(), 200);
+        }
+    }
+
+    // Haversine distance in km
+    function haversine(lat1, lng1, lat2, lng2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function formatDist(km) {
+        if (km < 1) return `${Math.round(km * 1000)} m`;
+        return `${km.toFixed(1)} km`;
+    }
+
+    function nearbyDetectGps() {
+        const badge = document.getElementById('nearbyGpsBadge');
+        const listDiv = document.getElementById('nearbyList');
+        const mapDiv = document.getElementById('nearbyMapView');
+
+        badge.className = 'nearby-gps-badge detecting';
+        badge.textContent = '📡 Detecting GPS...';
+        listDiv.innerHTML = '<div class="nearby-loading"><div class="spinner"></div><span style="color:var(--text-muted);">Acquiring your location...</span></div>';
+
+        if (!navigator.geolocation) {
+            badge.className = 'nearby-gps-badge error';
+            badge.textContent = '❌ GPS not available';
+            listDiv.innerHTML = '<div class="nearby-empty"><div class="ne-icon">📍</div><p>Geolocation not supported by your browser.</p></div>';
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                nearbyUserLat = pos.coords.latitude;
+                nearbyUserLng = pos.coords.longitude;
+
+                // Reverse geocode for display
+                fetch(`/api/reverse_geocode?lat=${nearbyUserLat}&lng=${nearbyUserLng}`)
+                    .then(r => r.json())
+                    .then(res => {
+                        const shortAddr = (res.formatted_address || '').split(',').slice(0, 3).join(',');
+                        badge.className = 'nearby-gps-badge success';
+                        badge.innerHTML = `✅ ${shortAddr || 'Location detected'}`;
+                    })
+                    .catch(() => {
+                        badge.className = 'nearby-gps-badge success';
+                        badge.textContent = `✅ ${nearbyUserLat.toFixed(4)}, ${nearbyUserLng.toFixed(4)}`;
+                    });
+
+                // Fetch nearby facilities
+                fetchNearbyFacilities(nearbyUserLat, nearbyUserLng);
+            },
+            (err) => {
+                badge.className = 'nearby-gps-badge error';
+                if (err.code === 1) badge.textContent = '🚫 Location permission denied';
+                else if (err.code === 2) badge.textContent = '❌ Location unavailable';
+                else badge.textContent = '⏱️ GPS timed out';
+
+                listDiv.innerHTML = `<div class="nearby-empty">
+                    <div class="ne-icon">📍</div>
+                    <p>Could not detect your location.</p>
+                    <p style="font-size:0.8rem; margin-top:6px;">Please allow location access and click 🔄 Refresh</p>
+                </div>`;
+            },
+            { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+        );
+    }
+
+    function fetchNearbyFacilities(lat, lng) {
+        const listDiv = document.getElementById('nearbyList');
+        listDiv.innerHTML = '<div class="nearby-loading"><div class="spinner"></div><span style="color:var(--text-muted);">Searching nearby facilities...</span></div>';
+
+        // Fetch both registered (DB) and external (Nominatim) hospitals in parallel
+        const regPromise = fetch(`/api/registered_nearby_hospitals?lat=${lat}&lng=${lng}`).then(r => r.json()).catch(() => ({hospitals: []}));
+        const extPromise = fetch(`/api/nearby_hospitals?lat=${lat}&lng=${lng}`).then(r => r.json()).catch(() => ({hospitals: [], veterinary: []}));
+
+        Promise.all([regPromise, extPromise]).then(([regData, extData]) => {
+            // Process registered hospitals
+            const registeredHospitals = (regData.hospitals || []).map(h => ({
+                ...h, _type: 'registered', _dist: h.distance_km
+            }));
+            registeredHospitalsData = registeredHospitals; // Store globally
+
+            // Process external hospitals
+            (extData.hospitals || []).forEach(h => {
+                h._type = 'hospital';
+                h._dist = haversine(lat, lng, parseFloat(h.lat), parseFloat(h.lng));
+            });
+            (extData.veterinary || []).forEach(v => {
+                v._type = 'vet';
+                v._dist = haversine(lat, lng, parseFloat(v.lat), parseFloat(v.lng));
+            });
+
+            const externalAll = [...(extData.hospitals || []), ...(extData.veterinary || [])];
+            externalAll.sort((a, b) => a._dist - b._dist);
+
+            // Update summary chips
+            const summary = document.getElementById('nearbySummary');
+            const regCount = registeredHospitals.length;
+            const hCount = (extData.hospitals || []).length;
+            const vCount = (extData.veterinary || []).length;
+            summary.innerHTML = '';
+            if (regCount > 0) summary.innerHTML += `<span class="ns-chip reg">✅ ${regCount} Registered</span>`;
+            if (hCount > 0) summary.innerHTML += `<span class="ns-chip hosp">🏥 ${hCount} Hospital${hCount>1?'s':''}</span>`;
+            if (vCount > 0) summary.innerHTML += `<span class="ns-chip vet">🐾 ${vCount} Clinic${vCount>1?'s':''}</span>`;
+
+            // Combine for map (registered first, then external)
+            const allForMap = [...registeredHospitals, ...externalAll];
+
+            // Render views
+            renderNearbyList(registeredHospitals, externalAll);
+            renderNearbyMap(lat, lng, allForMap);
+        });
+    }
+
+    function renderNearbyList(registered, external) {
+        const listDiv = document.getElementById('nearbyList');
+        let html = '';
+
+        // Registered hospitals section
+        if (registered.length > 0) {
+            html += '<div class="nearby-section-label"><span>✅ Registered Hospitals (HopeOnWheel)</span><span class="nsl-badge" style="background:rgba(16,185,129,0.12);color:#4ade80;">' + registered.length + '</span></div>';
+            html += registered.map((item, i) => {
+                return `<div class="hosp-card registered" title="Click to view on map">
+                    <div class="hc-icon registered" onclick="focusNearbyMarker(${i})">🏥</div>
+                    <div class="hc-info" onclick="focusNearbyMarker(${i})">
+                        <div class="hc-name">${item.name} <span class="hc-verified">✅ Verified</span></div>
+                        <div class="hc-type">📍 ${item.location || 'GPS Location'}</div>
+                        ${item.contact ? '<div class="hc-contact">📞 ' + item.contact + ' · 🩺 ' + (item.available_doctors || 0) + '/' + (item.doctors || 0) + ' doctors available</div>' : ''}
+                    </div>
+                    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+                        <div class="hc-dist">${formatDist(item._dist)}</div>
+                        <button class="hc-notify-btn" id="notifyBtn-${item.id}" data-hid="${item.id}" data-hname="${(item.name || '').replace(/"/g, '&quot;')}" data-hdist="${item._dist}" onclick="event.stopPropagation(); openNotifyModal(this.dataset.hid, this.dataset.hname, parseFloat(this.dataset.hdist))">🚨 Notify</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // External facilities section
+        if (external.length > 0) {
+            html += '<div class="nearby-section-label" style="margin-top:' + (registered.length > 0 ? '12px' : '0') + ';"><span>🔍 Other Nearby Facilities</span><span class="nsl-badge" style="background:rgba(59,130,246,0.12);color:#93c5fd;">' + external.length + '</span></div>';
+            const offset = registered.length;
+            html += external.map((item, i) => {
+                const isHosp = item._type === 'hospital';
+                const icon = isHosp ? '🏥' : '🐾';
+                const iconClass = isHosp ? 'hospital' : 'vet';
+                const typeLabel = isHosp ? 'Hospital' : 'Veterinary Clinic';
+                return `<div class="hosp-card" onclick="focusNearbyMarker(${offset + i})" title="Click to view on map">
+                    <div class="hc-icon ${iconClass}">${icon}</div>
+                    <div class="hc-info">
+                        <div class="hc-name">${item.name || 'Unnamed Facility'}</div>
+                        <div class="hc-type">${typeLabel}</div>
+                    </div>
+                    <div class="hc-dist">${formatDist(item._dist)}</div>
+                </div>`;
+            }).join('');
+        }
+
+        if (html === '') {
+            html = '<div class="nearby-empty"><div class="ne-icon">🏥</div><p>No hospitals or clinics found nearby.</p><p style="font-size:0.8rem; margin-top:4px; color:var(--text-muted);">Try refreshing your location.</p></div>';
+        }
+
+        listDiv.innerHTML = html;
+    }
+
+    let nearbyMarkers = [];
+
+    function renderNearbyMap(userLat, userLng, items) {
+        const mapContainer = document.getElementById('nearbyMap');
+
+        // Destroy old map
+        if (nearbyMap) {
+            nearbyMap.remove();
+            nearbyMap = null;
+        }
+        nearbyMarkers = [];
+
+        nearbyMap = L.map('nearbyMap').setView([userLat, userLng], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(nearbyMap);
+
+        // User marker
+        const userIcon = L.divIcon({
+            html: '<div style="background:linear-gradient(135deg,#3b82f6,#8b5cf6); width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; border:3px solid white; box-shadow:0 3px 12px rgba(59,130,246,0.5); animation:pulse 2s infinite;">📍</div>',
+            iconSize: [40, 40], iconAnchor: [20, 20], className: ''
+        });
+        L.marker([userLat, userLng], { icon: userIcon })
+            .addTo(nearbyMap)
+            .bindPopup('<b>📍 You are here</b>')
+            .openPopup();
+
+        // Facility markers
+        const bounds = L.latLngBounds([[userLat, userLng]]);
+
+        items.forEach((item, i) => {
+            const fLat = parseFloat(item.lat);
+            const fLng = parseFloat(item.lng);
+            if (isNaN(fLat) || isNaN(fLng)) return;
+
+            const isRegistered = item._type === 'registered';
+            const isHosp = item._type === 'hospital' || isRegistered;
+            const emoji = isRegistered ? '✅' : (isHosp ? '🏥' : '🐾');
+            const bgColor = isRegistered ? '#10b981' : (isHosp ? '#3b82f6' : '#a855f7');
+            const label = isRegistered ? (item.name + ' (Verified)') : (isHosp ? 'Hospital' : 'Vet Clinic');
+
+            const facIcon = L.divIcon({
+                html: `<div style="background:${bgColor}; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; border:2px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3);">${isRegistered ? '🏥' : emoji}</div>`,
+                iconSize: [34, 34], iconAnchor: [17, 17], className: ''
+            });
+
+            const popupContent = isRegistered
+                ? `<b>✅ ${item.name}</b><br><span style="color:#666;">Registered Hospital</span><br>📍 ${item.location || ''}<br>📏 ${formatDist(item._dist)} away${item.contact ? '<br>📞 ' + item.contact : ''}`
+                : `<b>${emoji} ${item.name || 'Facility'}</b><br><span style="color:#666;">${isHosp ? 'Hospital' : 'Vet Clinic'}</span><br>📏 ${formatDist(item._dist)} away`;
+
+            const marker = L.marker([fLat, fLng], { icon: facIcon })
+                .addTo(nearbyMap)
+                .bindPopup(popupContent);
+
+            nearbyMarkers.push(marker);
+            bounds.extend([fLat, fLng]);
+
+            // Draw dotted line from user to facility
+            L.polyline([[userLat, userLng], [fLat, fLng]], {
+                color: bgColor, weight: isRegistered ? 3 : 2, opacity: isRegistered ? 0.5 : 0.3,
+                dashArray: isRegistered ? '8, 6' : '6, 8'
+            }).addTo(nearbyMap);
+        });
+
+        if (items.length > 0) {
+            nearbyMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+        }
+
+        setTimeout(() => nearbyMap.invalidateSize(), 300);
+    }
+
+    function focusNearbyMarker(index) {
+        // Switch to map view and focus on the marker
+        switchNearbyView('map');
+        if (nearbyMarkers[index]) {
+            setTimeout(() => {
+                nearbyMap.invalidateSize();
+                nearbyMap.setView(nearbyMarkers[index].getLatLng(), 15, { animate: true });
+                nearbyMarkers[index].openPopup();
+            }, 250);
+        }
+    }
+
+    // ===== NOTIFY HOSPITAL SYSTEM =====
+    let activeNotifId = null;
+    let notifPollInterval = null;
+
+    function openNotifyModal(hospitalId, hospitalName, distKm) {
+        // Validate GPS first
+        if (!nearbyUserLat || !nearbyUserLng) {
+            showToast('GPS location not detected yet. Please wait for GPS or click Refresh.', 'error');
+            return;
+        }
+        document.getElementById('notifyHospId').value = hospitalId;
+        document.getElementById('notifyHospName').textContent = hospitalName;
+        document.getElementById('notifyHospDist').textContent = `📏 ${formatDist(distKm)} away · ⏱ ETA ~${Math.max(1, Math.round(distKm / 0.67))} min`;
+        document.getElementById('notifyEmergencyType').value = 'General';
+        document.getElementById('notifySentConfirm').style.display = 'none';
+        document.querySelector('.notify-form').style.display = 'flex';
+        document.getElementById('notifySendBtn').disabled = false;
+        document.getElementById('notifySendBtn').textContent = '🚨 Send Alert — We Are Coming!';
+        document.getElementById('notifyHospitalModal').style.display = 'flex';
+    }
+
+    function sendNotifyHospital(retryCount) {
+        retryCount = retryCount || 0;
+        const hospitalId = document.getElementById('notifyHospId').value;
+        const emergencyType = document.getElementById('notifyEmergencyType').value;
+        const btn = document.getElementById('notifySendBtn');
+        btn.disabled = true;
+        btn.textContent = retryCount > 0 ? `🔄 Retrying (${retryCount}/3)...` : '📡 Sending...';
+
+        // Double-check GPS
+        if (!nearbyUserLat || !nearbyUserLng) {
+            btn.disabled = false;
+            btn.textContent = '🚨 Send Alert — We Are Coming!';
+            showToast('GPS not available. Please allow location access and refresh.', 'error');
+            return;
+        }
+
+        const badge = document.getElementById('nearbyGpsBadge');
+        const locationAddr = badge ? badge.textContent.replace('✅ ', '').replace('📡 Detecting GPS...', '') : '';
+
+        const payload = {
+            hospital_id: parseInt(hospitalId),
+            lat: nearbyUserLat,
+            lng: nearbyUserLng,
+            emergency_type: emergencyType,
+            location_address: locationAddr
+        };
+
+        fetch('/api/notify_hospital', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        })
+        .then(r => {
+            if (!r.ok && r.status !== 400 && r.status !== 401) {
+                throw new Error(`Server returned ${r.status}`);
+            }
+            return r.json();
+        })
+        .then(res => {
+            if (res.success) {
+                document.querySelector('.notify-form').style.display = 'none';
+                document.getElementById('notifySentConfirm').style.display = 'block';
+                document.getElementById('notifyConfirmDetails').innerHTML =
+                    `🏥 <strong>${res.hospital_name}</strong><br>📏 ${res.distance_km} km · ⏱ ETA ~${res.eta_minutes} min<br>⚠️ ${emergencyType}`;
+                document.getElementById('notifyWaitingStatus').style.background = 'rgba(251,191,36,0.08)';
+                document.getElementById('notifyWaitingStatus').style.borderColor = 'rgba(251,191,36,0.15)';
+                document.getElementById('notifyWaitingStatus').style.color = '#fbbf24';
+                document.getElementById('notifyWaitingStatus').innerHTML = '⏳ Waiting for hospital response...';
+
+                const cardBtn = document.getElementById('notifyBtn-' + hospitalId);
+                if (cardBtn) {
+                    cardBtn.textContent = '✅ Sent';
+                    cardBtn.classList.add('sent');
+                    cardBtn.disabled = true;
+                }
+
+                activeNotifId = res.notification_id;
+                startNotifPolling();
+                showToast(`✅ Alert sent to ${res.hospital_name}!`, 'success');
+            } else {
+                btn.disabled = false;
+                btn.textContent = '🚨 Send Alert — We Are Coming!';
+                showToast(res.error || 'Failed to send alert', 'error');
+            }
+        })
+        .catch(err => {
+            console.error('Notify error:', err);
+            // Auto-retry up to 3 times
+            if (retryCount < 3) {
+                setTimeout(() => sendNotifyHospital(retryCount + 1), 1500);
+            } else {
+                btn.disabled = false;
+                btn.textContent = '🚨 Send Alert — We Are Coming!';
+                showToast('Failed after 3 attempts. Please check your connection and try again.', 'error');
+            }
+        });
+    }
+
+    function startNotifPolling() {
+        if (notifPollInterval) clearInterval(notifPollInterval);
+        notifPollInterval = setInterval(pollNotifStatus, 5000);
+        pollNotifStatus();
+    }
+
+    function pollNotifStatus() {
+        fetch('/api/user_notification_status')
+            .then(r => r.json())
+            .then(data => {
+                const notifs = data.notifications || [];
+                if (notifs.length === 0) return;
+
+                const panel = document.getElementById('notifStatusPanel');
+                const list = document.getElementById('notifStatusList');
+
+                if (notifs.length > 0) {
+                    panel.style.display = 'block';
+                    document.getElementById('notifPanelCount').textContent = notifs.length;
+                }
+
+                list.innerHTML = notifs.slice(0, 5).map(n => {
+                    const cls = n.status.toLowerCase();
+                    const statusIcon = n.status === 'Accepted' ? '✅' : (n.status === 'Busy' ? '🔴' : '⏳');
+                    const statusText = n.status === 'Accepted' ? 'Ready!' : (n.status === 'Busy' ? 'Busy' : 'Waiting...');
+                    return `<div class="notif-tracker ${cls}">
+                        <span class="nt-name">🏥 ${n.hospital_name}</span>
+                        <span class="nt-status">${statusIcon} ${statusText}</span>
+                    </div>`;
+                }).join('');
+
+                // Update waiting status in modal
+                if (activeNotifId) {
+                    const active = notifs.find(n => n.id === activeNotifId);
+                    if (active && active.status !== 'Pending') {
+                        const waitDiv = document.getElementById('notifyWaitingStatus');
+                        if (active.status === 'Accepted') {
+                            waitDiv.style.background = 'rgba(16,185,129,0.08)';
+                            waitDiv.style.borderColor = 'rgba(16,185,129,0.15)';
+                            waitDiv.style.color = '#4ade80';
+                            waitDiv.innerHTML = `✅ <strong>Hospital is ready for your arrival!</strong><br><span style="font-size:0.8rem;">${active.hospital_message || ''}</span>`;
+                        } else {
+                            waitDiv.style.background = 'rgba(239,68,68,0.08)';
+                            waitDiv.style.borderColor = 'rgba(239,68,68,0.15)';
+                            waitDiv.style.color = '#f87171';
+                            waitDiv.innerHTML = `🔴 <strong>Hospital is currently busy.</strong><br><span style="font-size:0.8rem;">Try notifying another hospital nearby.</span>`;
+                        }
+                        clearInterval(notifPollInterval);
+                    }
+                }
+            }).catch(() => {});
+    }
+
+    // Check for existing notifications on page load
+    fetch('/api/user_notification_status').then(r => r.json()).then(data => {
+        const pending = (data.notifications || []).filter(n => n.status === 'Pending');
+        if (pending.length > 0) startNotifPolling();
+        else if ((data.notifications || []).length > 0) pollNotifStatus();
+    }).catch(() => {});
+
 </script>
 {% endblock %}

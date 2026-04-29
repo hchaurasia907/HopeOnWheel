@@ -11,8 +11,19 @@
 
     .hosp-header {
         display: flex; justify-content: space-between; align-items: center;
-        padding: 1.8rem 2.5rem; margin-bottom: 1.5rem;
+        padding: 2rem 2.5rem; margin-bottom: 1.5rem;
         background: linear-gradient(135deg, rgba(15,23,42,0.7), rgba(139,92,246,0.08));
+    }
+    .hosp-welcome {
+        font-size: 2.2rem; font-weight: 800; margin-bottom: 4px;
+        background: linear-gradient(90deg, #c084fc, #60a5fa, #34d399);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        line-height: 1.2;
+    }
+    .hosp-welcome .hosp-emoji { -webkit-text-fill-color: initial; }
+    .hosp-name-sub {
+        font-size: 1rem; color: var(--text-muted); font-weight: 500;
+        margin-top: 2px;
     }
     .hosp-header h2 { font-size: 1.6rem; }
     .hosp-header h2 span {
@@ -85,6 +96,102 @@
     }
     .map-btn:hover { background: #3b82f6; color: white; transform: scale(1.05); }
 
+    /* Alert styles */
+    .hosp-stat.amber .s-num { color: #fbbf24; }
+    .alert-section { margin-bottom: 1.5rem; }
+    .alert-badge {
+        display: inline-flex; align-items: center; justify-content: center;
+        background: #ef4444; color: white; font-size: 0.7rem; font-weight: 800;
+        min-width: 20px; height: 20px; border-radius: 10px; padding: 0 5px;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100% { box-shadow:0 0 0 0 rgba(239,68,68,0.4); } 70% { box-shadow:0 0 0 8px rgba(239,68,68,0); } }
+
+    .alert-card {
+        padding: 1rem 1.2rem; border-radius: 12px; margin-bottom: 0.8rem;
+        border: 1px solid rgba(255,255,255,0.06);
+        transition: all 0.3s ease; animation: slideInAlert 0.4s ease;
+    }
+    @keyframes slideInAlert { from { opacity:0; transform:translateX(-20px); } to { opacity:1; transform:translateX(0); } }
+    .alert-card.incoming {
+        background: rgba(251,191,36,0.06); border-color: rgba(251,191,36,0.2);
+    }
+    .alert-card.ready {
+        background: rgba(16,185,129,0.06); border-color: rgba(16,185,129,0.2);
+    }
+    .alert-card.acknowledged {
+        background: rgba(100,116,139,0.06); border-color: rgba(100,116,139,0.15);
+    }
+    .alert-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+    .alert-info { flex: 1; min-width: 200px; }
+    .alert-title { font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 6px; }
+    .alert-meta { font-size: 0.8rem; color: var(--text-muted); margin-top: 3px; }
+    .alert-status-badge {
+        font-size: 0.75rem; font-weight: 700; padding: 3px 10px;
+        border-radius: 8px; white-space: nowrap;
+    }
+    .alert-status-badge.incoming { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+    .alert-status-badge.ready { background: rgba(16,185,129,0.15); color: #4ade80; border: 1px solid rgba(16,185,129,0.3); }
+    .alert-status-badge.acknowledged { background: rgba(100,116,139,0.15); color: #94a3b8; border: 1px solid rgba(100,116,139,0.3); }
+    .alert-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    .alert-btn {
+        padding: 0.4rem 1rem; border-radius: 8px; border: none;
+        cursor: pointer; font-family: var(--font); font-size: 0.8rem; font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .alert-btn.ready-btn {
+        background: rgba(16,185,129,0.15); color: #4ade80;
+        border: 1px solid rgba(16,185,129,0.2);
+    }
+    .alert-btn.ready-btn:hover { background: #10b981; color: white; transform: scale(1.05); }
+    .alert-btn.ack-btn {
+        background: rgba(100,116,139,0.15); color: #94a3b8;
+        border: 1px solid rgba(100,116,139,0.2);
+    }
+    .alert-btn.ack-btn:hover { background: #64748b; color: white; transform: scale(1.05); }
+    .alert-empty {
+        text-align: center; padding: 2rem; color: var(--text-muted);
+    }
+
+    /* Direct user notification cards */
+    .notif-card {
+        padding: 1rem 1.2rem; border-radius: 12px; margin-bottom: 0.8rem;
+        border: 1px solid rgba(255,255,255,0.06);
+        transition: all 0.3s ease; animation: slideInAlert 0.4s ease;
+    }
+    .notif-card.pending {
+        background: rgba(239,68,68,0.06); border-color: rgba(239,68,68,0.2);
+    }
+    .notif-card.accepted {
+        background: rgba(16,185,129,0.06); border-color: rgba(16,185,129,0.2);
+    }
+    .notif-card.busy {
+        background: rgba(100,116,139,0.06); border-color: rgba(100,116,139,0.15);
+    }
+    .notif-emergency {
+        display: inline-block; font-size: 0.72rem; font-weight: 700;
+        padding: 2px 8px; border-radius: 6px; margin-left: 6px;
+        background: rgba(239,68,68,0.15); color: #f87171;
+        border: 1px solid rgba(239,68,68,0.3);
+    }
+    .notif-eta {
+        display: inline-block; font-size: 0.72rem; font-weight: 700;
+        padding: 2px 8px; border-radius: 6px; margin-left: 4px;
+        background: rgba(59,130,246,0.12); color: #93c5fd;
+        border: 1px solid rgba(59,130,246,0.2);
+    }
+    .hosp-stat.red .s-num { color: #f87171; }
+    .alert-btn.busy-btn {
+        background: rgba(239,68,68,0.15); color: #f87171;
+        border: 1px solid rgba(239,68,68,0.2);
+    }
+    .alert-btn.busy-btn:hover { background: #ef4444; color: white; transform: scale(1.05); }
+    .alert-btn.accept-btn {
+        background: rgba(16,185,129,0.15); color: #4ade80;
+        border: 1px solid rgba(16,185,129,0.2);
+    }
+    .alert-btn.accept-btn:hover { background: #10b981; color: white; transform: scale(1.05); }
+
     .hosp-toast {
         position: fixed; bottom: 30px; right: 30px;
         padding: 1rem 1.5rem; border-radius: 12px;
@@ -101,8 +208,28 @@
     <!-- Header -->
     <div class="hosp-header glass-card">
         <div>
-            <h2>🏥 <span>{{ hospital.name }}</span></h2>
-            <p style="color: var(--text-muted); margin-top: 4px; font-size: 0.9rem;"><i class="fas fa-map-marker-alt"></i> {{ hospital.location }}</p>
+            {% if hospital.name %}
+            <div class="hosp-welcome">
+                <span class="hosp-emoji">🏥</span> Welcome to {{ hospital.name }}
+            </div>
+            {% else %}
+            <div class="hosp-welcome">
+                <span class="hosp-emoji">🏥</span> Hospital Dashboard
+            </div>
+            {% endif %}
+            <p class="hosp-name-sub">
+                <i class="fas fa-map-marker-alt"></i> <span id="hospLiveLocation">{{ hospital.location }}</span>
+                <span id="hospLocStatus" style="font-size:0.75rem; margin-left:8px; color:#fbbf24;">📡 Updating...</span>
+                {% if hospital.name %}
+                <span style="margin-left:10px; font-size:0.78rem; color:#4ade80; font-weight:600;">✅ Verified Hospital</span>
+                {% endif %}
+            </p>
+            {% if not hospital.name %}
+            <div style="margin-top:8px; padding:8px 14px; border-radius:10px; background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.15); font-size:0.85rem; color:#fbbf24; display:inline-flex; align-items:center; gap:6px;">
+                ⚠️ Hospital name not set.
+                <button onclick="document.getElementById('updateNameModal').style.display='flex'" style="background:#f59e0b; color:white; border:none; padding:3px 10px; border-radius:6px; cursor:pointer; font-weight:700; font-family:var(--font); font-size:0.8rem;">Set Name Now</button>
+            </div>
+            {% endif %}
         </div>
         <span class="loc-badge"><i class="fas fa-hospital"></i> Hospital Portal</span>
     </div>
@@ -121,9 +248,104 @@
             <div class="s-num">{{ bookings|length }}</div>
             <div class="s-label">Incoming Patients</div>
         </div>
+        <div class="hosp-stat amber glass-card">
+            <div class="s-num" id="alertCountStat">{{ pending_alerts }}</div>
+            <div class="s-label">🔔 Booking Alerts</div>
+        </div>
+        <div class="hosp-stat red glass-card">
+            <div class="s-num" id="notifCountStat">{{ pending_notifs }}</div>
+            <div class="s-label">🚨 Incoming Users</div>
+        </div>
     </div>
 
-    <!-- Doctors Section -->
+    <!-- Ambulance Alerts Section -->
+    <div class="alert-section glass-card" style="padding: 1.5rem;">
+        <h3 style="display:flex; align-items:center; gap:8px; margin-bottom:1rem;">
+            <i class="fas fa-bell"></i> Hospital Connect — Ambulance Alerts
+            <span class="alert-badge" id="alertBadge" style="display:{{ 'inline-flex' if pending_alerts > 0 else 'none' }};">{{ pending_alerts }}</span>
+        </h3>
+        <div id="alertsContainer">
+            {% if alerts %}
+                {% for a in alerts %}
+                <div class="alert-card {{ a.status|lower }}" id="alert-{{ a.id }}">
+                    <div class="alert-top">
+                        <div class="alert-info">
+                            <div class="alert-title">
+                                🚨 {{ a.patient_name }}
+                                <span class="alert-status-badge {{ a.status|lower }}">{{ a.status }}</span>
+                            </div>
+                            <div class="alert-meta">
+                                🆔 {{ a.tracking_id }} · 📍 {{ a.pickup_location[:60] }}{% if a.pickup_location|length > 60 %}...{% endif %}
+                                · 📏 {{ a.distance_km }} km away
+                                · 📅 {{ a.created_at.strftime('%d %b, %I:%M %p') if a.created_at else '' }}
+                            </div>
+                        </div>
+                    </div>
+                    {% if a.status == 'Incoming' %}
+                    <div class="alert-actions">
+                        <button class="alert-btn ready-btn" onclick="respondAlert({{ a.id }}, 'Ready')">✅ We Are Ready</button>
+                        <button class="alert-btn ack-btn" onclick="respondAlert({{ a.id }}, 'Acknowledged')">👁️ Acknowledged</button>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert-empty">
+                    <div style="font-size:2rem; margin-bottom:0.5rem;">🔔</div>
+                    No ambulance alerts yet. You'll be notified when patients book nearby.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Direct User Notifications ("We Are Coming") -->
+    <div class="alert-section glass-card" style="padding: 1.5rem;">
+        <h3 style="display:flex; align-items:center; gap:8px; margin-bottom:1rem;">
+            <i class="fas fa-ambulance"></i> Incoming Users — "We Are Coming"
+            <span class="alert-badge" id="notifBadge" style="display:{{ 'inline-flex' if pending_notifs > 0 else 'none' }}; background:#ef4444;">{{ pending_notifs }}</span>
+        </h3>
+        <div id="notifsContainer">
+            {% if direct_notifs %}
+                {% for n in direct_notifs %}
+                <div class="notif-card {{ n.status|lower }}" id="notif-{{ n.id }}">
+                    <div class="alert-top">
+                        <div class="alert-info">
+                            <div class="alert-title">
+                                👤 {{ n.user_name }}
+                                <span class="notif-emergency">⚠️ {{ n.emergency_type }}</span>
+                                <span class="notif-eta">⏱ ETA ~{{ n.eta_minutes }} min</span>
+                                {% if n.status == 'Pending' %}
+                                <span class="alert-status-badge incoming">Incoming</span>
+                                {% elif n.status == 'Accepted' %}
+                                <span class="alert-status-badge ready">Accepted</span>
+                                {% else %}
+                                <span class="alert-status-badge acknowledged">Busy</span>
+                                {% endif %}
+                            </div>
+                            <div class="alert-meta">
+                                📍 {{ n.user_location_address or 'GPS Location' }}
+                                · 📏 {{ n.distance_km }} km away
+                                {% if n.user_contact %}· 📞 {{ n.user_contact }}{% endif %}
+                                · 📅 {{ n.created_at.strftime('%d %b, %I:%M %p') if n.created_at else '' }}
+                            </div>
+                        </div>
+                    </div>
+                    {% if n.status == 'Pending' %}
+                    <div class="alert-actions">
+                        <button class="alert-btn accept-btn" onclick="respondNotif({{ n.id }}, 'Accepted')">✅ Accept / Ready</button>
+                        <button class="alert-btn busy-btn" onclick="respondNotif({{ n.id }}, 'Busy')">🔴 Busy / Not Available</button>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert-empty">
+                    <div style="font-size:2rem; margin-bottom:0.5rem;">🚑</div>
+                    No incoming user alerts yet. Users can notify you from the nearby hospitals list.
+                </div>
+            {% endif %}
+        </div>
+    </div>
     <div class="doctors-section glass-card" style="padding: 1.5rem;">
         <h3 style="display:flex; align-items:center; gap:8px; margin-bottom:1rem;">
             <i class="fas fa-user-md"></i> Doctors Directory
@@ -242,6 +464,23 @@
         </form>
     </div>
 </div>
+
+<!-- Update Hospital Name Modal -->
+<div id="updateNameModal" class="modal">
+    <div class="modal-content glass-card" style="max-width:450px;">
+        <span class="close" onclick="document.getElementById('updateNameModal').style.display='none'">&times;</span>
+        <h3><i class="fas fa-hospital"></i> Set Hospital Name</h3>
+        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">Your hospital name will be displayed to all users and in nearby hospital searches.</p>
+        <div class="input-group" style="margin-bottom:1rem; text-align:left;">
+            <label style="font-size:0.85rem; font-weight:600; color:var(--text-muted); margin-bottom:4px;">Hospital Name</label>
+            <input type="text" id="newHospitalName" placeholder="e.g. City Care Hospital" style="width:100%; padding:0.85rem 1rem; background:rgba(15,23,42,0.6); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:10px; font-family:var(--font); font-size:0.95rem; outline:none;" value="{{ hospital.name or '' }}">
+        </div>
+        <button class="btn-primary" style="width:100%;" onclick="updateHospitalName()">
+            <i class="fas fa-save"></i> Save Hospital Name
+        </button>
+        <div id="nameUpdateResult" style="margin-top:8px; font-size:0.85rem;"></div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -299,6 +538,28 @@
         setTimeout(() => t.remove(), 3000);
     }
 
+    function updateHospitalName() {
+        const name = document.getElementById('newHospitalName').value.trim();
+        if (!name) {
+            document.getElementById('nameUpdateResult').innerHTML = '<span style="color:#f87171;">Please enter a hospital name.</span>';
+            return;
+        }
+        fetch('/api/update_hospital_name', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ name: name })
+        }).then(r => r.json()).then(res => {
+            if (res.success) {
+                showToast('Hospital name updated successfully!');
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                document.getElementById('nameUpdateResult').innerHTML = '<span style="color:#f87171;">' + res.error + '</span>';
+            }
+        }).catch(() => {
+            document.getElementById('nameUpdateResult').innerHTML = '<span style="color:#f87171;">Network error. Please try again.</span>';
+        });
+    }
+
     let hospitalMap = null, hospitalMarker = null;
 
     function viewLocation(locationStr) {
@@ -339,5 +600,187 @@
     function closeLocationModal() {
         document.getElementById('locationModal').style.display = 'none';
     }
+
+    // ===== HOSPITAL GPS AUTO-DETECT ON PAGE LOAD =====
+    function autoDetectHospitalLocation() {
+        const locDisplay = document.getElementById('hospLiveLocation');
+        const locStatus = document.getElementById('hospLocStatus');
+
+        if (!navigator.geolocation) {
+            locStatus.textContent = '📍 Saved location';
+            locStatus.style.color = 'var(--text-muted)';
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                locStatus.textContent = '✅ Live GPS';
+                locStatus.style.color = '#4ade80';
+
+                // Reverse geocode and update display + backend
+                fetch(`/api/reverse_geocode?lat=${lat}&lng=${lng}`)
+                    .then(r => r.json())
+                    .then(res => {
+                        const addr = res.formatted_address || `GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                        locDisplay.textContent = addr;
+
+                        // Save to backend
+                        fetch('/api/update_hospital_gps', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ lat: lat, lng: lng, address: addr })
+                        });
+                    })
+                    .catch(() => {
+                        locDisplay.textContent = `GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                        fetch('/api/update_hospital_gps', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ lat: lat, lng: lng })
+                        });
+                    });
+            },
+            (err) => {
+                // GPS denied — keep existing stored location
+                locStatus.textContent = '📍 Saved location';
+                locStatus.style.color = 'var(--text-muted)';
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    }
+    autoDetectHospitalLocation();
+
+    // ===== HOSPITAL CONNECT: ALERT POLLING =====
+    let lastAlertCount = {{ pending_alerts }};
+
+    function respondAlert(alertId, status) {
+        fetch('/api/hospital_alert_respond', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ alert_id: alertId, status: status })
+        }).then(r => r.json()).then(res => {
+            if (res.success) {
+                showToast(`Response sent: ${status}`);
+                // Update the card in-place
+                const card = document.getElementById('alert-' + alertId);
+                if (card) {
+                    card.className = 'alert-card ' + status.toLowerCase();
+                    const badge = card.querySelector('.alert-status-badge');
+                    if (badge) { badge.textContent = status; badge.className = 'alert-status-badge ' + status.toLowerCase(); }
+                    const actions = card.querySelector('.alert-actions');
+                    if (actions) actions.remove();
+                }
+                // Decrement pending count
+                updatePendingCount(-1);
+            } else {
+                alert('Error: ' + res.error);
+            }
+        });
+    }
+
+    function updatePendingCount(delta) {
+        lastAlertCount = Math.max(0, lastAlertCount + delta);
+        const badge = document.getElementById('alertBadge');
+        const stat = document.getElementById('alertCountStat');
+        badge.textContent = lastAlertCount;
+        stat.textContent = lastAlertCount;
+        badge.style.display = lastAlertCount > 0 ? 'inline-flex' : 'none';
+    }
+
+    function playAlertBeep() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.value = 880;
+            gain.gain.value = 0.15;
+            osc.start(); osc.stop(ctx.currentTime + 0.15);
+            setTimeout(() => {
+                const osc2 = ctx.createOscillator();
+                osc2.connect(gain); osc2.frequency.value = 1100;
+                osc2.start(); osc2.stop(ctx.currentTime + 0.15);
+            }, 200);
+        } catch(e) {}
+    }
+
+    // Poll for new alerts every 10 seconds
+    function pollAlerts() {
+        fetch('/api/hospital_alerts')
+            .then(r => r.json())
+            .then(data => {
+                if (data.pending_count > lastAlertCount) {
+                    // New alerts arrived!
+                    playAlertBeep();
+                    showToast(`🚨 New ambulance alert! ${data.pending_count} pending`);
+                    // Reload to show new alerts
+                    setTimeout(() => location.reload(), 1500);
+                }
+                lastAlertCount = data.pending_count;
+                const badge = document.getElementById('alertBadge');
+                const stat = document.getElementById('alertCountStat');
+                badge.textContent = lastAlertCount;
+                stat.textContent = lastAlertCount;
+                badge.style.display = lastAlertCount > 0 ? 'inline-flex' : 'none';
+            })
+            .catch(() => {});
+    }
+    setInterval(pollAlerts, 10000);
+
+    // ===== DIRECT USER NOTIFICATION SYSTEM =====
+    let lastNotifCount = {{ pending_notifs }};
+
+    function respondNotif(notifId, status) {
+        fetch('/api/hospital_notification_respond', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ notification_id: notifId, status: status })
+        }).then(r => r.json()).then(res => {
+            if (res.success) {
+                showToast(`Response sent: ${status}`);
+                const card = document.getElementById('notif-' + notifId);
+                if (card) {
+                    card.className = 'notif-card ' + status.toLowerCase();
+                    // Update status badge
+                    const badges = card.querySelectorAll('.alert-status-badge');
+                    badges.forEach(b => {
+                        b.textContent = status;
+                        b.className = 'alert-status-badge ' + (status === 'Accepted' ? 'ready' : 'acknowledged');
+                    });
+                    // Remove action buttons
+                    const actions = card.querySelector('.alert-actions');
+                    if (actions) actions.remove();
+                }
+                // Update pending count
+                lastNotifCount = Math.max(0, lastNotifCount - 1);
+                document.getElementById('notifBadge').textContent = lastNotifCount;
+                document.getElementById('notifCountStat').textContent = lastNotifCount;
+                document.getElementById('notifBadge').style.display = lastNotifCount > 0 ? 'inline-flex' : 'none';
+            } else {
+                alert('Error: ' + res.error);
+            }
+        });
+    }
+
+    // Poll for new direct notifications
+    function pollNotifs() {
+        fetch('/api/hospital_incoming_notifications')
+            .then(r => r.json())
+            .then(data => {
+                if (data.pending_count > lastNotifCount) {
+                    playAlertBeep();
+                    showToast(`🚨 New user incoming! ${data.pending_count} pending`);
+                    setTimeout(() => location.reload(), 1500);
+                }
+                lastNotifCount = data.pending_count;
+                document.getElementById('notifBadge').textContent = lastNotifCount;
+                document.getElementById('notifCountStat').textContent = lastNotifCount;
+                document.getElementById('notifBadge').style.display = lastNotifCount > 0 ? 'inline-flex' : 'none';
+            })
+            .catch(() => {});
+    }
+    setInterval(pollNotifs, 8000);
 </script>
 {% endblock %}
