@@ -6,7 +6,7 @@ __pycache__/
 *$py.class
 
 # Database
-*.db
+# *.db  (removed to allow ambulance.db to be pushed)
 
 # Environments
 .env
