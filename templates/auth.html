@@ -220,10 +220,13 @@
                     </div>
                     <div class="input-group">
                         <label><i class="fas fa-stethoscope"></i> Service Type</label>
-                        <select name="service_type" class="p-field">
+                        <select name="service_type" class="p-field" id="providerServiceType">
                             <option value="Human">🧑 Human Ambulance</option>
-                            <option value="Animal">🐾 Animal Ambulance</option>
+                            <option value="Animal" disabled style="color:#888;">🐾 Animal Ambulance — Coming Soon</option>
                         </select>
+                        <div style="margin-top:6px; padding:6px 12px; border-radius:8px; background:rgba(139,92,246,0.08); border:1px solid rgba(139,92,246,0.15); font-size:0.78rem; color:#c4b5fd; display:flex; align-items:center; gap:6px;">
+                            ✨ Animal Ambulance service is coming soon!
+                        </div>
                     </div>
                 </div>
 
@@ -381,6 +384,21 @@
     });
 
     updateForm();
+
+    // ===== BLOCK ANIMAL REGISTRATION (Coming Soon) =====
+    document.getElementById('authForm').addEventListener('submit', function(e) {
+        const role = roleInput.value;
+        const action = actionInput.value;
+        if (action === 'register' && role === 'provider') {
+            const svcType = document.getElementById('providerServiceType');
+            if (svcType && svcType.value === 'Animal') {
+                e.preventDefault();
+                alert('🐾 Animal Ambulance service is coming soon! Please register as a Human Ambulance provider for now.');
+                svcType.value = 'Human';
+                return false;
+            }
+        }
+    });
 
     // ===== HOSPITAL GPS AUTO-DETECT =====
     function detectHospitalGps() {

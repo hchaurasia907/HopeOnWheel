@@ -11,6 +11,7 @@ import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import WalletPage from './pages/WalletPage';
 import FeedbackPage from './pages/FeedbackPage';
+import AnimalAmbulance from './pages/AnimalAmbulance';
 
 const Layout = () => {
   return (
@@ -37,6 +38,7 @@ function App() {
         <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
         <Route path="/wallet" element={<ProtectedRoute><WalletPage /></ProtectedRoute>} />
         <Route path="/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
+        <Route path="/animal-ambulance" element={<ProtectedRoute><AnimalAmbulance /></ProtectedRoute>} />
 
         {/* Protected Admin Routes */}
         <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminDashboard /></ProtectedRoute>} />

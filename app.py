@@ -68,6 +68,22 @@ def haversine_distance(lat1, lng1, lat2, lng2):
 def index():
     return render_template('index.html')
 
+@app.route('/api/stats')
+def get_stats():
+    """Live platform stats — real DB counts only."""
+    total_bookings = Booking.query.count()
+    completed_rides = Booking.query.filter_by(status='Completed').count()
+    active_providers = Provider.query.count()
+    hospitals_connected = Hospital.query.count()
+    total_users = User.query.count()
+    return jsonify({
+        'bookings': total_bookings,
+        'completed_rides': completed_rides,
+        'providers': active_providers,
+        'hospitals': hospitals_connected,
+        'users': total_users
+    })
+
 @app.route('/auth', methods=['GET', 'POST'])
 def auth():
     if request.method == 'POST':
@@ -107,6 +123,11 @@ def auth():
                     name = request.form.get('name', '').strip()
                     ambulance_number = request.form.get('ambulance_number', '').strip()
                     service_type = request.form.get('service_type')
+                    
+                    # Block Animal service type (Coming Soon)
+                    if service_type == 'Animal':
+                        flash('🐾 Animal Ambulance service is coming soon! Please register as Human Ambulance provider for now.', 'error')
+                        return render_template('auth.html')
                     
                     # Capitalize name properly
                     name = name.title() if name else name
@@ -284,6 +305,11 @@ def book_ambulance():
     if not user or session.get('user_type') != 'user': return jsonify({"error": "Session expired or unauthorized. Please log in again."}), 401
     
     data = request.json
+    
+    # Block Animal bookings (Coming Soon)
+    if data.get('service_type') == 'Animal':
+        return jsonify({"error": "🐾 Animal Ambulance is coming soon! This service is not available yet."}), 400
+    
     provider = Provider.query.filter_by(name=data['provider_name']).first()
     if not provider: return jsonify({"error": "Provider not found"}), 404
     

@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { LogOut, Wallet, User, ShieldAlert } from 'lucide-react';
+import { LogOut, Wallet, User, ShieldAlert, PawPrint } from 'lucide-react';
 
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
@@ -36,6 +36,12 @@ const Navbar = () => {
                   <>
                     <Link to="/dashboard" className="text-gray-500 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                       Book Trip
+                    </Link>
+                    <Link to="/animal-ambulance" className="relative text-gray-500 hover:text-violet-600 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1 transition-colors">
+                      <PawPrint size={18} /> Animal
+                      <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-violet-500 to-pink-500 text-white rounded-full leading-none">
+                        NEW
+                      </span>
                     </Link>
                     <Link to="/wallet" className="text-gray-500 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1 transition-colors">
                       <Wallet size={18} /> ₹{user.walletBalance || 0}

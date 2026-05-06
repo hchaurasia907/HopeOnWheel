@@ -398,6 +398,103 @@
         100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
     }
 
+    /* ===== ANIMAL AMBULANCE COMING SOON ===== */
+    @keyframes animalFloat { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-14px) rotate(3deg)} }
+    @keyframes animalShimmer { 0%{background-position:200% center} 100%{background-position:-200% center} }
+    @keyframes animalPulseRing { 0%{transform:scale(1);opacity:0.6} 100%{transform:scale(1.8);opacity:0} }
+    @keyframes animalFadeIn { from{opacity:0;transform:scale(0.85) translateY(20px)} to{opacity:1;transform:scale(1) translateY(0)} }
+
+    .animal-cs-overlay {
+        position:fixed; inset:0; z-index:10000;
+        background:rgba(0,0,0,0.75); backdrop-filter:blur(12px);
+        display:none; place-items:center; justify-content:center; align-items:center;
+    }
+    .animal-cs-overlay.active { display:flex; }
+    .animal-cs-card {
+        position:relative; max-width:480px; width:92%; padding:2.5rem 2rem 2rem;
+        border-radius:24px; text-align:center;
+        background:linear-gradient(145deg, rgba(30,15,60,0.95), rgba(15,10,40,0.98));
+        border:1px solid rgba(168,85,247,0.25);
+        box-shadow:0 25px 80px rgba(139,92,246,0.25), 0 0 0 1px rgba(255,255,255,0.05) inset;
+        animation:animalFadeIn 0.4s ease;
+    }
+    .animal-cs-close {
+        position:absolute; top:14px; right:18px; background:none; border:none;
+        color:rgba(255,255,255,0.4); font-size:1.6rem; cursor:pointer;
+        transition:color 0.2s, transform 0.2s;
+    }
+    .animal-cs-close:hover { color:white; transform:rotate(90deg); }
+    .animal-cs-icon-wrap {
+        position:relative; display:inline-block; margin-bottom:1.2rem;
+    }
+    .animal-cs-icon {
+        width:90px; height:90px; border-radius:22px;
+        background:linear-gradient(135deg,#8b5cf6,#ec4899);
+        display:flex; align-items:center; justify-content:center;
+        font-size:2.8rem; box-shadow:0 12px 40px rgba(139,92,246,0.4);
+        animation:animalFloat 3.5s ease-in-out infinite;
+    }
+    .animal-cs-icon-ring {
+        position:absolute; inset:-8px; border-radius:28px;
+        border:2px solid rgba(139,92,246,0.3);
+        animation:animalPulseRing 2s ease-out infinite;
+    }
+    .animal-cs-badge {
+        display:inline-flex; align-items:center; gap:6px;
+        padding:5px 16px; border-radius:20px; margin-bottom:1rem;
+        background:rgba(139,92,246,0.12); border:1px solid rgba(139,92,246,0.25);
+        font-size:0.72rem; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+        color:#c4b5fd;
+    }
+    .animal-cs-title {
+        font-size:1.8rem; font-weight:800; margin:0.5rem 0;
+        background:linear-gradient(90deg,#a78bfa,#f472b6,#a78bfa);
+        background-size:200%; -webkit-background-clip:text; background-clip:text;
+        -webkit-text-fill-color:transparent;
+        animation:animalShimmer 3s linear infinite;
+    }
+    .animal-cs-desc { color:rgba(255,255,255,0.5); font-size:0.92rem; line-height:1.6; margin-bottom:1.5rem; }
+    .animal-cs-features {
+        display:grid; grid-template-columns:1fr 1fr; gap:10px;
+        margin-bottom:1.8rem; text-align:left;
+    }
+    .animal-cs-feat {
+        display:flex; align-items:center; gap:8px;
+        padding:10px 12px; border-radius:12px;
+        background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
+        font-size:0.8rem; color:rgba(255,255,255,0.7);
+        transition:background 0.3s, border-color 0.3s;
+    }
+    .animal-cs-feat:hover { background:rgba(139,92,246,0.08); border-color:rgba(139,92,246,0.2); }
+    .animal-cs-feat span { font-size:1.2rem; }
+    .animal-cs-notify {
+        display:flex; gap:8px;
+    }
+    .animal-cs-notify input {
+        flex:1; padding:0.7rem 1rem; border-radius:12px; border:1px solid rgba(255,255,255,0.1);
+        background:rgba(255,255,255,0.06); color:white; font-family:var(--font); font-size:0.88rem;
+        outline:none; transition:border-color 0.3s, box-shadow 0.3s;
+    }
+    .animal-cs-notify input:focus { border-color:rgba(139,92,246,0.5); box-shadow:0 0 0 3px rgba(139,92,246,0.15); }
+    .animal-cs-notify input::placeholder { color:rgba(255,255,255,0.3); }
+    .animal-cs-notify-btn {
+        padding:0.7rem 1.4rem; border-radius:12px; border:none;
+        background:linear-gradient(135deg,#8b5cf6,#ec4899); color:white;
+        font-weight:700; font-family:var(--font); font-size:0.88rem;
+        cursor:pointer; white-space:nowrap;
+        transition:transform 0.2s, box-shadow 0.3s;
+        box-shadow:0 4px 15px rgba(139,92,246,0.3);
+    }
+    .animal-cs-notify-btn:hover { transform:translateY(-2px); box-shadow:0 8px 25px rgba(139,92,246,0.5); }
+    .animal-cs-notify-btn:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+    .animal-cs-success {
+        display:flex; align-items:center; justify-content:center; gap:8px;
+        padding:0.7rem; border-radius:12px;
+        background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2);
+        color:#6ee7b7; font-weight:600; font-size:0.88rem;
+    }
+    .animal-cs-footer { margin-top:1.2rem; font-size:0.72rem; color:rgba(255,255,255,0.3); }
+
     @media (max-width: 768px) {
         .wallet-card { flex-direction: column; text-align: center; }
         .wallet-actions { flex-direction: column; width: 100%; }
@@ -408,6 +505,8 @@
         .nearby-header { flex-direction: column; align-items: flex-start; }
         #allHospitalsMap { height: 350px; }
         .hospital-map-header { flex-direction: column; align-items: flex-start; }
+        .animal-cs-features { grid-template-columns:1fr; }
+        .animal-cs-card { padding:2rem 1.2rem 1.5rem; }
     }
 </style>
 
@@ -652,6 +751,36 @@
     </div>
 </div>
 
+<!-- Animal Ambulance Coming Soon Modal -->
+<div class="animal-cs-overlay" id="animalComingSoonModal">
+    <div class="animal-cs-card">
+        <button class="animal-cs-close" onclick="closeAnimalCS()">&times;</button>
+        <div class="animal-cs-icon-wrap">
+            <div class="animal-cs-icon">🐾</div>
+            <div class="animal-cs-icon-ring"></div>
+        </div>
+        <div class="animal-cs-badge">✨ Coming Soon ✨</div>
+        <h2 class="animal-cs-title">Animal Ambulance</h2>
+        <p class="animal-cs-desc">
+            We're building a dedicated emergency ambulance service for pets & stray animals.
+            Fast, compassionate veterinary transport — launching soon on HopeOn Wheel!
+        </p>
+        <div class="animal-cs-features">
+            <div class="animal-cs-feat"><span>🐕</span> Pet Emergency</div>
+            <div class="animal-cs-feat"><span>🏥</span> Vet Connect</div>
+            <div class="animal-cs-feat"><span>🩺</span> On-board Aid</div>
+            <div class="animal-cs-feat"><span>📍</span> Live Tracking</div>
+        </div>
+        <div id="animalCsNotifyWrap">
+            <div class="animal-cs-notify" id="animalCsForm">
+                <input type="email" id="animalCsEmail" placeholder="Enter email for launch alert">
+                <button class="animal-cs-notify-btn" onclick="animalCsNotify()">Notify Me</button>
+            </div>
+        </div>
+        <div class="animal-cs-footer">🐾 Every life matters — human or animal.</div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -664,7 +793,17 @@
     ];
 
     function filterProviders() {
-        const type = document.getElementById('b_type').value;
+        const typeSelect = document.getElementById('b_type');
+        const type = typeSelect.value;
+
+        // Intercept Animal selection — show Coming Soon
+        if (type === 'Animal') {
+            document.getElementById('animalComingSoonModal').classList.add('active');
+            typeSelect.value = 'Human'; // Reset back
+            filterProviders(); // Re-filter for Human
+            return;
+        }
+
         const selector = document.getElementById('b_provider');
         selector.innerHTML = '';
         const filtered = providers.filter(p => p.type === type);
@@ -680,6 +819,25 @@
         });
     }
     filterProviders();
+
+    // ===== ANIMAL AMBULANCE COMING SOON =====
+    function closeAnimalCS() {
+        document.getElementById('animalComingSoonModal').classList.remove('active');
+    }
+    function animalCsNotify() {
+        const email = document.getElementById('animalCsEmail').value.trim();
+        if (!email || !email.includes('@')) {
+            showToast('Please enter a valid email address.', 'error');
+            return;
+        }
+        document.getElementById('animalCsNotifyWrap').innerHTML =
+            '<div class="animal-cs-success">✅ You\'re on the list! We\'ll notify you at launch.</div>';
+        showToast('You\'ll be notified when Animal Ambulance launches!', 'success');
+    }
+    // Close modal on overlay click
+    document.getElementById('animalComingSoonModal').addEventListener('click', function(e) {
+        if (e.target === this) closeAnimalCS();
+    });
 
     // ===== WALLET =====
     function addMoney() {

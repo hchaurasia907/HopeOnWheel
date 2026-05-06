@@ -532,10 +532,10 @@
 
 <!-- Stats Bar -->
 <div class="stats-bar glass-card">
-    <div class="stat-item" style="animation-delay:0.1s;"><div class="stat-num" id="cnt-1">0</div><div class="stat-text">Bookings Made</div></div>
-    <div class="stat-item" style="animation-delay:0.2s;"><div class="stat-num" id="cnt-2">0</div><div class="stat-text">Active Providers</div></div>
+    <div class="stat-item" style="animation-delay:0.1s;"><div class="stat-num" id="cnt-1">0</div><div class="stat-text">Total Rides</div></div>
+    <div class="stat-item" style="animation-delay:0.2s;"><div class="stat-num" id="cnt-2">0</div><div class="stat-text">Registered Providers</div></div>
     <div class="stat-item" style="animation-delay:0.3s;"><div class="stat-num" id="cnt-3">0</div><div class="stat-text">Hospitals Connected</div></div>
-    <div class="stat-item" style="animation-delay:0.4s;"><div class="stat-num" id="cnt-4">0</div><div class="stat-text">Cities Covered</div></div>
+    <div class="stat-item" style="animation-delay:0.4s;"><div class="stat-num" id="cnt-4">0</div><div class="stat-text">Registered Users</div></div>
 </div>
 
 <!-- Features Section -->
@@ -640,26 +640,41 @@
         }
     })();
 
-    // ===== COUNTER ANIMATION =====
+    // ===== COUNTER ANIMATION WITH LIVE DATA =====
     function animateCounter(id, target, suffix) {
         const el = document.getElementById(id);
         let current = 0;
-        const increment = Math.max(1, Math.ceil(target / 50));
+        const increment = Math.max(1, Math.ceil(target / 60));
         const timer = setInterval(() => {
             current += increment;
             if (current >= target) { current = target; clearInterval(timer); }
             el.textContent = current + (suffix || '');
-        }, 30);
+        }, 25);
+    }
+
+    // Fetch live stats from API
+    function loadLiveStats() {
+        fetch('/api/stats')
+            .then(r => r.json())
+            .then(data => {
+                animateCounter('cnt-1', data.bookings, '');
+                animateCounter('cnt-2', data.providers, '');
+                animateCounter('cnt-3', data.hospitals, '');
+                animateCounter('cnt-4', data.users, '');
+            })
+            .catch(() => {
+                // Show 0 if API fails
+                ['cnt-1','cnt-2','cnt-3','cnt-4'].forEach(id => {
+                    document.getElementById(id).textContent = '0';
+                });
+            });
     }
 
     // Observe when stats bar enters viewport
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                animateCounter('cnt-1', 500, '+');
-                animateCounter('cnt-2', 50, '+');
-                animateCounter('cnt-3', 120, '+');
-                animateCounter('cnt-4', 25, '+');
+                loadLiveStats();
                 observer.disconnect();
             }
         });
